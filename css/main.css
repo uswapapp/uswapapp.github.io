@@ -298,3 +298,23 @@ span.token {
     text-align: center;
     align-items: center;
 }
+
+.font-family-size-large {
+    font-size: 22px;
+}
+
+.font-family-size-medium-large {
+    font-size: 20px;
+}
+
+.font-family-size-medium {
+    font-size: 16px;
+}
+
+.font-family-size-small-medium {
+    font-size: 14px;
+}
+
+.span-font-color {
+    color: #00d848;
+}
