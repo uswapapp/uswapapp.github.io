@@ -4,7 +4,13 @@
 
 html, body{
 
-    font-family: 'Source Sans Pro', sans-serif;
+    /*font-family: 'Source Sans Pro', sans-serif;*/
+    /*font-family: 'Trebuchet MS', Tahoma, Verdana, sans-serif;*/
+    /*font-family: 'Source Sans Pro', 'Arial', 'Helvetica', 'Tahoma', 'Verdana', sans-serif;*/
+
+    font-family: 'Segoe UI', 'Ubuntu', 'Helvetica Neue', 'Oxygen', 'Roboto', 'Open Sans', 'Source Sans Pro', sans-serif;
+
+    font-weight: 380;
 
     background-color: #000000;
 
