@@ -373,6 +373,10 @@ svg.bi-arrow-left-right path {
     color: #421e00;
 }
 
+#status.fee-info {
+    color: #ffffff !important;
+  }
+
 .btn-load {
     background-color: #421e00;
     border-color: #421e00;
