@@ -88,7 +88,7 @@
 
                 <div class="p-3 m-0">
 
-                    <p class="font-family-size-large m-0 c">SWAP HIVE</p>
+                    <p class="font-family-size-large m-0 c font-heading-color">SWAP HIVE</p>
 
                     <p class="m-0">Discounted Bridge</p>
 
@@ -104,7 +104,7 @@
 
                 <div class="m-4">
 
-                    <p class="font-family-size-large mb-3">Wallet</p>
+                    <p class="font-family-size-large font-family-size-large-color mb-3">Wallet</p>
 
                     <div class="d-flex mb-3">
 
@@ -114,25 +114,25 @@
 
                             <input type="text" class="input form-control" id="username" placeholder="Username">
 
-                            <button type="button" id="checkbalance" class="btn btn-danger ms-2 rounded-pill">Load</button>
+                            <button type="button" id="checkbalance" class="btn btn-danger ms-2 rounded-pill btn-load">Load</button>
 
                         </div>
 
                     </div>
 
                     <div class="d-flex flex-column mb-3">
-                        <p class="m-0"><span class="s pointer font-family-size-medium"><span id="hive" class="qt token">0</span> <span class="sym">HIVE</span></span></p>
+                        <p class="m-0"><span class="s pointer font-family-size-medium"><span id="hive" class="qt token">0</span> <span class="sym font-family-size-medium">HIVE</span></span></p>
                         
-                        <p class="m-0"><span class="s pointer font-family-size-medium"><span id="swaphive" class="qt token">0</span> <span class="sym">SWAP.HIVE</span></span></p>
+                        <p class="m-0"><span class="s pointer font-family-size-medium"><span id="swaphive" class="qt token">0</span> <span class="sym font-family-size-medium">SWAP.HIVE</span></span></p>
                         
-                        <p class="m-0"><span class="s pointer font-family-size-medium"><span id="vault" class="qt token">0</span> <span class="sym">VAULT</span></span></p>
+                        <p class="m-0"><span class="s pointer font-family-size-medium"><span id="vault" class="qt token">0</span> <span class="sym font-family-size-medium">VAULT</span></span></p>
                     </div>
 
                     <hr>
 
                     <div class="d-flex flex-column">
 
-                        <p class="h4 text-info">
+                        <p class="font-family-size-large text-info">
 
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 19 19">
 
@@ -142,15 +142,12 @@
 
                             </svg>
 
-                            <span class="font-family-size-large">Fee Info</span>
-
+                            <span class="font-family-size-large fee-info">Fee Info</span>
                         </p>
 
-                        <p class="m-0 fee font-family-size-small-medium"><span class="span-font-color">0.1%</span> Fee for HIVE <span class="m-0 details"> - 10% Fee Refund in VAULT</span></p>
+                        <p class="m-0 font-family-size-small-medium"><span class="span-font-color">HIVE & SWAP.HIVE : 0.1% fee with 10% refund to VAULT</span></p>
 
-                        <p class="m-0 fee font-family-size-small-medium"><span class="span-font-color">0.1%</span> Fee for SWAP.HIVE <span class="m-0 details"> - 10% Fee Refund in VAULT</span></p>
-
-                        <p class="m-0 fee font-family-size-small-medium"><span class="span-font-color">0%</span> Fee for VAULT</p>
+                        <p class="m-0 font-family-size-small-medium"><span class="span-font-color">VAULT : 0% fee</p>
 
                     </div>
 
@@ -160,7 +157,7 @@
     
                             <a class="link-lightv2 font-family-size-small-medium" href="https://kswap.app/" target="_blank">
     
-                                <span style="vertical-align: middle;">Use Kswap Bridge (<span style="color: #ffd95b;">Fee [<span style="color: #00d848;">-0.25%</span>] to [<span style="color: #00d848;">0.45%</span>]</span>) for Dynamic Fees & Rewards!&nbsp;</span>
+                                <span style="vertical-align: middle;">Use Kswap Bridge (Fee [<span style="color: #ffd95b;">-0.25%</span>] to [<span style="color: #ffd95b;">0.45%</span>]) for Dynamic Fees & Rewards!&nbsp;</span>
     
                                 <svg style="vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-up-right" viewBox="0 0 16 16">
     
@@ -176,9 +173,9 @@
     
                                 <div class="d-flex flex-column align-items-center alignclass">
     
-                                    <span class="font-family-size-small-medium">HIVE</span>
+                                    <span class="font-family-size-small-medium font-family-size-small-medium-color">HIVE</span>
     
-                                    <span id="hive_liq" class="font-family-size-small-medium text-info">0</span>
+                                    <span id="hive_liq" class="font-family-size-small-medium medium-text-info">0</span>
     
                                 </div>
     
@@ -194,9 +191,9 @@
     
                                 <div class="d-flex flex-column align-items-center alignclass">
     
-                                    <span class="font-family-size-small-medium">SWAP.HIVE</span>
+                                    <span class="font-family-size-small-medium font-family-size-small-medium-color">SWAP.HIVE</span>
     
-                                    <span id="swap_liq" class="font-family-size-small-medium text-info">0</span>
+                                    <span id="swap_liq" class="font-family-size-small-medium medium-text-info">0</span>
     
                                 </div>
     
@@ -218,13 +215,13 @@
 
                     <div class="d-flex justify-content-between align-items-center">
 
-                        <p class="font-family-size-large mb-3">Conversion</p>
+                        <p class="font-family-size-large mb-3 font-family-size-large-color">Conversion</p>
 
-                        <span class="font-family-size-medium mb-3">
+                        <span class="font-family-size-medium mb-3 font-family-size-medium-color">
 
                             Minimum:&nbsp;
 
-                            <span id="minimum" class="font-family-size-medium mb-3 text-info">1 HIVE</span>
+                            <span id="minimum" class="font-family-size-medium mb-3 font-family-size-medium-color">1 HIVE</span>
 
                         </span>
 
@@ -234,7 +231,7 @@
 
                         <input type="number" class="input form-control a" id="inputquantity" placeholder="Send">
 
-                        <select id="input" class="form-select form-select-lg input b" style="width: initial;">
+                        <select id="input" class="form-select form-select-lg input b option-value-color" style="width: initial;">
 
                             <option value="HIVE">HIVE</option>
 
@@ -264,7 +261,7 @@
 
                         <input type="number" class="input form-control a" id="outputquantity" placeholder="Receive" readonly>
 
-                        <select id="output" class="form-select form-select-lg input b" style="width: initial;">
+                        <select id="output" class="form-select form-select-lg input b option-value-color" style="width: initial;">
 
                             <option value="HIVE">HIVE</option>
 
@@ -274,24 +271,24 @@
 
                     </div>
 
-                    <p class="mt-2 mb-0 font-family-size-medium">Conversion Fee: <span id="fee" class="text-info">0</span>&nbsp;<span id="feeticker" class="text-info">HIVE</span></p>
+                    <p class="mt-2 mb-0 font-family-size-medium">Conversion Fee: <span id="fee" class="medium-text-info">0</span>&nbsp;<span id="feeticker" class="medium-text-info-changed">HIVE</span></p>
                     <div class="mt-0 mb-0">
                         <span class="font-family-size-medium">Reward: </span>
-                        <span id="vaultreward" class="font-family-size-medium text-info">0</span>&nbsp;<span class="font-family-size-medium text-info">VAULT</span>
+                        <span id="vaultreward" class="font-family-size-medium medium-text-info">0</span>&nbsp;<span class="font-family-size-medium medium-text-info-changed">VAULT</span>
                         <div class="d-none" id="rewarddiv">
                             <span class="font-family-size-medium">&</span>
-                            <span id="reward" class="font-family-size-medium text-info">0</span>&nbsp;<span id="rewardticker" class="font-family-size-medium text-info">HIVE</span>
+                            <span id="reward" class="font-family-size-medium medium-text-info">0</span>&nbsp;<span id="rewardticker" class="font-family-size-medium medium-text-info-changed">HIVE</span>
                         </div>
                     </div>
                     <div class="mt-3 d-flex align-items-center justify-content-center mb-3">
-                        <div class="d-flex align-items-center box rounded-3 flex-wrap justify-content-center me-2">
+                        <div class="d-flex align-items-center box-auth rounded-3 flex-wrap justify-content-center me-2">
                             <input class="form-check-input pointer d-none" type="radio" name="txtype" id="txtype" value="Hive Keychain" disabled>
                             <label class="form-check-label pointer d-flex justify-content-center" for="txtype">
                             <img class="ops" src="assets/hive_keychain.png">
                             <span class="text-nowrap">Hive Keychain</span>
                             </label>
                         </div>
-                        <div class="d-flex align-items-center box rounded-3 flex-wrap justify-content-center ms-2">
+                        <div class="d-flex align-items-center box-auth rounded-3 flex-wrap justify-content-center ms-2">
                             <input class="form-check-input pointer d-none" type="radio" name="txtype" id="txtype1" value="Hive Auth" disabled>
                             <label class="form-check-label pointer d-flex justify-content-center" for="txtype1">
                             <img class="ops" src="assets/hive_auth.png">
@@ -300,7 +297,7 @@
                         </div>
                     </div>
 
-                    <button type="button" id="swap" class="btn btn-danger rounded-pill mb-3 w-100" disabled>SWAP</button>
+                    <button type="button" id="swap" class="btn btn-danger rounded-pill mb-3 w-100 btn-bg btn-swap" disabled>SWAP</button>
 
                     <div class="d-flex align-items-center">
 
@@ -320,21 +317,21 @@
 
                 <div class="m-4">
 
-                    <p class="font-family-size-large mb-3">Available Liquidity</p>
+                    <p class="font-family-size-large mb-3 font-family-size-large-color">Available Liquidity</p>
 
                     <div class="d-flex align-items-center mb-1">
 
-                        <p class="font-family-size-medium-large m-0 fee">@uswap</p>
+                        <p class="font-family-size-medium-large m-0 account-info">@uswap</p>
 
-                        <button type="button" id="refresh" class="btn-sm btn-danger ms-2 rounded-pill">Refresh</button>
+                        <button type="button" id="refresh" class="btn-sm btn-danger ms-2 rounded-pill btn-refresh">Refresh</button>
 
                     </div>
 
                     <div class="d-flex flex-column mb-2">
 
-                        <p class="m-0 font-family-size-medium text-info"><span id="hiveliquidity">0</span> <span class="details">HIVE</span></p>
+                        <p class="m-0 font-family-size-medium medium-text-info"><span id="hiveliquidity">0</span> <span class="details">HIVE</span></p>
 
-                        <p class="m-0 font-family-size-medium text-info"><span id="swaphiveliquidity">0</span> <span class="details">SWAP.HIVE</span></p>                
+                        <p class="m-0 font-family-size-medium medium-text-info"><span id="swaphiveliquidity">0</span> <span class="details">SWAP.HIVE</span></p>                
 
                     </div>
                     <hr>
@@ -345,12 +342,12 @@
 
                         <p class="font-family-size-small-medium liquidity">You can provide <span class="fee">15%</span> Liquidity on the lower side of the bridge to earn <span class="fee">0.075%</span> instant rewards and free swaps!</p>
 
-                        <p class="font-family-size-small-medium text-light s pointer m-0"><span id="reqhive" class="qt fee">0</span> <span class="sym">HIVE</span> Required</p>
+                        <p class="font-family-size-small-medium s pointer m-0"><span id="reqhive" class="qt fee">0</span> <span class="sym req-info">HIVE</span> Required</p>
 
-                        <p class="font-family-size-small-medium text-light s pointer m-0"><span id="reqswaphive" class="qt fee">0</span> <span class="sym">SWAP.HIVE</span> Required</p> 
+                        <p class="font-family-size-small-medium s pointer m-0"><span id="reqswaphive" class="qt fee">0</span> <span class="sym req-info">SWAP.HIVE</span> Required</p> 
 
                         <hr>
-                        <a href="https://peakd.com/swap/@hiveupme/hiveupme-swap-script-simple-ui-solution" target="_blank" class="link-info font-family-size-medium">Learn How to Use</a>
+                        <a href="https://peakd.com/hive/@theguruasia/earn-free-hive-or-swaphive-while-using-hive-engine-uswapapp" target="_blank" class="link-info font-family-size-medium">Learn How to Use</a>
 
                         <div class="mt-2">
 
@@ -368,9 +365,9 @@
 
                                 <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 220 190">
 
-                                    <defs><style>.cls-1{fill:#ffff;}</style></defs>
+                                    <defs><style>.cls-1{fill:#421e00;}</style></defs>
 
-                                    <title>hive-hive-logo</title>
+                                    <title>hive-logo</title>
 
                                     <g id="Layer_2" data-name="Layer 2">
 
@@ -410,7 +407,7 @@
 
                         <p class="font-family-size-large m-0">Hive History</p>
 
-                        <button type="button" class="refreshHistory btn-sm btn-danger ms-3 rounded-pill">Refresh</button>
+                        <button type="button" class="refreshHistory btn-sm btn-danger ms-3 rounded-pill btn-refresh">Refresh</button>
 
                     </div>
 
@@ -462,7 +459,7 @@
 
                         <p class="font-family-size-large m-0">SWAP.HIVE History</p>
 
-                        <button type="button" class="refreshHistory btn-sm btn-danger ms-3 rounded-pill">Refresh</button>
+                        <button type="button" class="refreshHistory btn-sm btn-danger ms-3 rounded-pill btn-refresh">Refresh</button>
 
                     </div>
 

@@ -10,16 +10,15 @@ html, body{
 
     font-family: 'Segoe UI', 'Ubuntu', 'Helvetica Neue', 'Oxygen', 'Roboto', 'Open Sans', 'Source Sans Pro', sans-serif;
 
-    font-weight: 380;
+    font-weight: 400;
 
-    background-color: #000000;
+    background-color: #ffffff;
 
-    color: #fff;
+    color: #421e00;
 
     font-size: 1rem;
 
 }
-
 
 
 img {
@@ -46,7 +45,7 @@ img {
 
   padding: 8px 16px;
 
-  background-color: #1e1e1e;
+  background-color: #3b2f2f;
 
 }
 
@@ -92,7 +91,7 @@ img {
 
 .bg {
 
-    background-color: #1b1b1b;
+    background-color: #6F4E37;
 
 }
 
@@ -221,7 +220,7 @@ a {
 
 .htable tr:nth-child(even) {
 
-    background-color: #1e1e1e;
+    background-color: #d3bcac;
 
 }
 
@@ -229,7 +228,7 @@ a {
 
 .htable tr:hover {
 
-    background-color: #1e1e1e;
+    background-color: #d3bcac;
 
 }
 
@@ -268,7 +267,7 @@ a {
 }
 
 p.fee {
-    color: #ffd95b;
+    color: #421e00;
 }
 
 p.details {
@@ -276,11 +275,11 @@ p.details {
 }
 
 p.liquidity {
-    color: #00d848;
+    color: #d3bcac;
 }
 
 span.fee {
-    color: #ffd95b;
+    color: #ffffff;
 }
 
 span.details {
@@ -288,16 +287,16 @@ span.details {
 }
 
 span.token {
-    color: #DC3545;
-    font-weight: 600;
+    color: #ffffff;
+    font-weight: 400;
 }
 
 .link-lightv2 {
-    color: #fd4255;
+    color: #ffffff;
 }
 
 .link-lightv2:hover {
-    color: #00ccff;
+    color: #6F4E37;
 }
 
 .alignclass {
@@ -321,6 +320,127 @@ span.token {
     font-size: 14px;
 }
 
+.font-family-size-large-color {
+    color: #ffffff;
+}
+
+.font-family-size-small-medium-color {
+    color: #ffffff;
+}
+
+.font-family-size-medium-color {
+    color: #ffffff;
+}
+
+.font-heading-color {
+    color: #6F4E37;
+}
+
+.medium-text-info {
+    color: #ffd95b;
+}
+
+.medium-text-info-changed {
+    color: #ffffff;
+}
+
 .span-font-color {
-    color: #00d848;
+    color: #e6d8ce;
+}
+
+svg path {
+    fill: #421e00;
+}
+
+svg.bi-arrow-left-right path {
+    fill: #ffffff; /* or any other color you want */
+}
+
+.link-lightv2 svg.bi-box-arrow-up-right path {
+    fill: #ffffff;
+    transition: all 0.2s ease-in-out;
+}
+
+.link-lightv2:hover svg.bi-box-arrow-up-right path {
+    fill: #6F4E37;
+}
+
+.link-lightv2:hover svg.bi-box-arrow-up-right path {
+    fill: #6F4E37; /* or any other color you want */
+}
+
+.fee-info {
+    color: #421e00;
+}
+
+.btn-load {
+    background-color: #421e00;
+    border-color: #421e00;
+    transition: background-color 0.5s ease-in-out;
+}
+
+.btn-load:hover {
+    background-color: #e43131;
+    border-color: #e43131;
+    color: #ffffff;
+}
+
+.option-value-color {
+    color: #6F4E37;
+}
+
+.box-auth {
+    padding: 8px 16px;  
+    background-color: #421e00;  
+    color: #ffffff;
+}
+
+.btn-swap:disabled {
+    background-color: #9b7d68;
+    border-color: #9b7d68;
+}
+
+.btn-swap {
+    background-color: #421e00;
+    border-color: #421e00;
+    transition: background-color 0.5s ease-in-out;
+}
+
+.btn-swap:hover {
+    background-color: #e43131;
+    border-color: #e43131;
+    color: #ffffff;
+}
+
+.account-info {
+    color: #ffffff;
+}
+
+.btn-refresh {
+    background-color: #421e00;
+    border-color: #421e00;
+    transition: background-color 0.5s ease-in-out;
+}
+
+.btn-refresh:hover {
+    background-color: #e43131;
+    border-color: #e43131;
+    color: #ffffff;
+}
+
+.req-info {
+    color: #d3bcac;
+}
+
+.link-info {
+    color: #421e00;
+}
+
+.link-info:hover {
+    color: #ffffff;
+    transition: all 0.2s ease-in-out;
+}
+
+.cls-1 {
+    fill: #421e00;
 }
