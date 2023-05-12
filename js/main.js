@@ -301,6 +301,15 @@ $(window).bind("load", function () {
           });
         });
     });
+
+    $(window).scroll(function() {
+        var scrollHeight = $(document).height() - $(window).height();
+        if ($(this).scrollTop() >= scrollHeight - $('.bottom-bar').outerHeight()) {
+          $('.bottom-bar').addClass('fixed');
+        } else {
+          $('.bottom-bar').removeClass('fixed');
+        }
+    });
            
 
     if (localStorage['user']) {
