@@ -554,3 +554,34 @@ svg.svg-coffee-color path {
     align-items: center;
     color: #ffffff;
 }
+
+.developed-by-container {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    padding-left: 10px; /* add some padding for spacing */
+    margin-bottom: 5px; /* add some margin from the bottom bar */
+}
+
+.developed-by-container p {
+    margin: 0;
+    color: #421e00;
+}
+
+.alih-color {
+    color: #421e00;
+}
+
+.theguruasia-color {
+    color: #421e00;
+}
+
+.alih-color:hover {
+    color: #ffffff;
+    transition: all 4.0s ease-out;
+}
+
+.theguruasia-color:hover {
+    color: #ffffff;
+    transition: all 4.0s ease-out;
+}
