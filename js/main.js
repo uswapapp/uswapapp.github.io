@@ -92,10 +92,16 @@ $(window).bind("load", function () {
             stablereqHive = Math.floor((stablereq - bridgebal.HIVE) * 1000) / 1000;
             $("#reqhive").text(stablereqHive.toFixed(3));
         }
+        else {
+            $("#reqhive").text("0"); 
+        }
 
         if (bridgebal["SWAP.HIVE"] < stablereq) {
             stablereqSwapHive = Math.floor((stablereq - bridgebal["SWAP.HIVE"]) * 1000) / 1000;
             $("#reqswaphive").text(stablereqSwapHive.toFixed(3));
+        }
+        else {
+            $("#reqswaphive").text("0"); 
         }
 
         try {
