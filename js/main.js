@@ -262,6 +262,29 @@ $(window).bind("load", function () {
         }
     });
 
+    $(document).ready(function() {
+        $("#logo").show();
+        $("#changeThemeBlack").click(function() {
+            var css1 = document.querySelector("link[href='css/main-black.css']");
+            var css2 = document.querySelector("link[href='css/main-brown.css']");
+            css1.disabled = false;
+            css2.disabled = true;
+            $("body").fadeOut(400, function() {
+                $("body").fadeIn(400);
+            });
+        });
+      
+        $("#changeThemeBrown").click(function() {
+            var css1 = document.querySelector("link[href='css/main-black.css']");
+            var css2 = document.querySelector("link[href='css/main-brown.css']");
+            css1.disabled = true;
+            css2.disabled = false;
+            $("body").fadeOut(400, function() {
+                $("body").fadeIn(400);
+            });
+        });
+    });
+
     if (localStorage['user']) {
         $("#username").val(localStorage['user']);
         user = localStorage['user'];
