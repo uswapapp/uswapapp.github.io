@@ -300,7 +300,8 @@ $(window).bind("load", function () {
             $("body").fadeIn(400);
           });
         });
-    });      
+    });
+           
 
     if (localStorage['user']) {
         $("#username").val(localStorage['user']);
