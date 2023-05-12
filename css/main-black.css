@@ -447,6 +447,16 @@ svg.bi-arrow-left-right path {
     fill: #8b8b8b;
 }
 
+.cls-1:hover {
+    fill: #ffffff;
+    transition: all 0.2s ease-in-out;
+}
+
+.discord-color:hover path {
+    fill: #ffffff;
+    transition: all 0.2s ease-in-out;
+}
+
 .fee-data {
     color: #ffd95b;
 }
