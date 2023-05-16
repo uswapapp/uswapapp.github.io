@@ -3,27 +3,239 @@ $(window).bind("load", function () {
 
     var rpc_nodes = [
         "https://api.deathwing.me",
-        "https://hive.roelandp.nl",
-        "https://api.openhive.network",
-        "https://rpc.ausbit.dev",
-        "https://hived.emre.sh",
-        "https://hive-api.arcange.eu",
-        "https://api.hive.blog",
-        "https://api.c0ff33a.uk",
-        "https://rpc.ecency.com",
-        "https://anyx.io",
-        "https://techcoderx.com",
-        "https://hived.privex.io",
-        "https://api.followbtcnews.com/",
-        "https://api.hive.blue"
+		"https://hive.roelandp.nl",
+		"https://api.openhive.network",
+		"https://rpc.ausbit.dev",
+		"https://hived.emre.sh",
+		"https://hive-api.arcange.eu",
+		"https://api.hive.blog",
+		"https://api.c0ff33a.uk",
+		"https://rpc.ecency.com",
+		"https://anyx.io",
+		"https://techcoderx.com",
+		"https://api.hive.blue",
+		"https://rpc.mahdiyari.info"
     ];
 
-    hive.api.setOptions({ url: 'https://anyx.io' });
+    var he_rpc_nodes = [
+        "https://engine.rishipanthee.com", 
+		"https://ha.herpc.dtools.dev", 
+		"https://api.hive-engine.com",
+		"https://api.primersion.com",
+		"https://herpc.actifit.io"
+    ];
+
+    async function checkHiveNodeStatus(nodeUrl, statusElement) {
+        try 
+        {
+            const response = await axios.get(nodeUrl);
+            if (response.status === 200) 
+            {
+                statusElement.textContent = "Working";
+                statusElement.classList.remove("fail"); // Remove "fail" class if present
+                statusElement.classList.add("working");
+            } 
+            else 
+            {
+                statusElement.textContent = "Fail";
+                statusElement.classList.remove("working"); // Remove "working" class if present
+                statusElement.classList.add("fail");
+            }
+        } 
+        catch (error) 
+        {
+          statusElement.textContent = "Fail";
+          statusElement.classList.remove("working"); // Remove "working" class if present
+          statusElement.classList.add("fail");
+        }
+    };
+      
+    async function addHiveNodes() {
+        try 
+        {
+            const tableBody = document.querySelector("#api-list-hive tbody");
+            const workingNodes = [];
+            const failedNodes = [];
+        
+            for (let i = 0; i < rpc_nodes.length; i++) 
+            {
+                const nodeUrl = rpc_nodes[i];
+                const row = document.createElement("tr");
+                const urlCell = document.createElement("td");
+                const statusCell = document.createElement("td");
+        
+                urlCell.textContent = nodeUrl;
+                urlCell.classList.add("node-url"); // add new class to url cell
+                statusCell.textContent = "Checking...";
+        
+                row.appendChild(urlCell);
+                row.appendChild(statusCell);
+        
+                tableBody.appendChild(row);
+        
+                // Check node status
+                checkHiveNodeStatus(nodeUrl, statusCell);
+        
+                // Check node status every minute
+                setInterval(() => checkHiveNodeStatus(nodeUrl, statusCell), 60 * 1000);
+            }
+      
+            // Reorder the list of nodes based on their status
+            setTimeout(() => {
+                const rows = Array.from(tableBody.getElementsByTagName("tr"));
+        
+                rows.forEach((row) => {
+                    if (row.lastChild.textContent === "Working") 
+                    {
+                        workingNodes.push(row);
+                    } 
+                    else 
+                    {
+                        failedNodes.push(row);
+                    }
+                });
+        
+                tableBody.innerHTML = "";
+        
+                // Append workingNodes first, then failedNodes
+                workingNodes.forEach((row) => {
+                    tableBody.appendChild(row);
+                });
+        
+                failedNodes.forEach((row) => {
+                    tableBody.appendChild(row);
+                });
+            }, 5000);
+        } 
+        catch (error) 
+        {
+            console.log("Error at addHiveNodes(): ", error);
+        }
+    };      
+
+    addHiveNodes();
+
+    async function checkEngineNodeStatus(nodeUrl, statusElement) {
+        try 
+        {
+            const response = await axios.get(nodeUrl);
+            if (response.status === 200) 
+            {
+                statusElement.textContent = "Working";
+                statusElement.classList.remove("fail"); // Remove "fail" class if present
+                statusElement.classList.add("working");
+            } 
+            else 
+            {
+                statusElement.textContent = "Fail";
+                statusElement.classList.remove("working"); // Remove "working" class if present
+                statusElement.classList.add("fail");
+            }
+        } 
+        catch (error) 
+        {
+          statusElement.textContent = "Fail";
+          statusElement.classList.remove("working"); // Remove "working" class if present
+          statusElement.classList.add("fail");
+        }
+    };
+
+    async function addEngineNodes() {
+        try 
+        {
+            const tableBody = document.querySelector("#api-list-engine tbody");
+            const workingNodes = [];
+            const failedNodes = [];
+        
+            for (let i = 0; i < he_rpc_nodes.length; i++) 
+            {
+                const nodeUrl = he_rpc_nodes[i];
+                const row = document.createElement("tr");
+                const urlCell = document.createElement("td");
+                const statusCell = document.createElement("td");
+        
+                urlCell.textContent = nodeUrl;
+                urlCell.classList.add("node-url"); // add new class to url cell
+                statusCell.textContent = "Checking...";
+        
+                row.appendChild(urlCell);
+                row.appendChild(statusCell);
+        
+                tableBody.appendChild(row);
+        
+                // Check node status
+                checkEngineNodeStatus(nodeUrl, statusCell);
+        
+                // Check node status every minute
+                setInterval(() => checkEngineNodeStatus(nodeUrl, statusCell), 60 * 1000);
+            }
+      
+            // Reorder the list of nodes based on their status
+            setTimeout(() => {
+                const rows = Array.from(tableBody.getElementsByTagName("tr"));
+        
+                rows.forEach((row) => {
+                    if (row.lastChild.textContent === "Working") 
+                    {
+                        workingNodes.push(row);
+                    } 
+                    else 
+                    {
+                        failedNodes.push(row);
+                    }
+                });
+        
+                tableBody.innerHTML = "";
+        
+                // Append workingNodes first, then failedNodes
+                workingNodes.forEach((row) => {
+                    tableBody.appendChild(row);
+                });
+        
+                failedNodes.forEach((row) => {
+                    tableBody.appendChild(row);
+                });
+            }, 5000);
+        } 
+        catch (error) 
+        {
+            console.log("Error at addEngineNodes(): ", error);
+        }
+    };
+
+    addEngineNodes();
+
+    let ssc;
+
+    async function initializeHiveAPI() {
+        var selectedEndpoint = await getSelectedEndpoint();
+        console.log("SELECTE HIVE API NODE : ", selectedEndpoint);
+        hive.api.setOptions({ url: selectedEndpoint });
+
+        var button = document.getElementById("popup-button-hive");
+        button.value = selectedEndpoint;
+        button.innerHTML = selectedEndpoint;
+    }
+    
+    initializeHiveAPI();
+
+    async function initializeEngineAPI() {
+        var selectedEngEndpoint = await getSelectedEngEndpoint();
+        console.log("SELECTE ENGINE API NODE : ", selectedEngEndpoint);
+        ssc = new SSC(selectedEngEndpoint);
+
+        var button = document.getElementById("popup-button-engine");
+        button.value = selectedEngEndpoint;
+        button.innerHTML = selectedEngEndpoint;
+    }
+    
+    initializeEngineAPI();
+
     hive.config.set('alternative_api_endpoints', rpc_nodes);
 
     window.history.replaceState({}, document.title, "/" + "");
 
-    const ssc = new SSC("https://engine.rishipanthee.com/");
+    //const ssc = new SSC("https://engine.rishipanthee.com/");
 
     var DECIMAL = 1000;
     DECIMAL = parseInt(DECIMAL) || 0.0;
@@ -299,6 +511,114 @@ $(window).bind("load", function () {
           $("body").fadeOut(400, function() {
             $("body").fadeIn(400);
           });
+        });
+
+    
+        // Get a reference to the button and the popup container
+        var buttonHive = document.getElementById("popup-button-hive");
+        var popupHive = document.getElementById("popup-container-hive");        
+
+        // Add an event listener to the button
+        buttonHive.addEventListener("click", function() {
+            // Show the popup
+            popupHive.style.display = "block";
+        });
+
+        // Get a reference to the API list table body
+        var tableBodyHive = document.querySelector("#api-list-hive tbody");
+
+        // Add event listeners to the rows in the table body
+        var rowsHive = tableBodyHive.getElementsByTagName("tr");
+        for (var i = 0; i < rowsHive.length; i++) 
+        {
+            rowsHive[i].addEventListener("click", function(event) {
+                // Prevent the default link behavior
+                event.preventDefault();
+
+                // Get the node URL from the first cell in the row
+                var nodeUrl = this.cells[0].textContent;
+
+                // Set the API endpoint to the selected node
+                hive.api.setOptions({ url: nodeUrl });
+
+                // Update the button text
+                buttonHive.value = nodeUrl;
+                buttonHive.innerHTML = nodeUrl;
+
+                // Save the selected endpoint to local storage
+                localStorage.setItem("selectedEndpoint", nodeUrl);
+
+                // Hide the popup
+                popupHive.style.display = "none";
+
+                // Reload the page after 1 second (adjust the time as needed)
+                setTimeout(function() {
+                    location.reload();
+                }, 1000);
+            });
+        }
+
+        // Add an event listener to the close button
+        var closeButtonHive = document.getElementById("close-button-hive");
+        closeButtonHive.addEventListener("click", function() {
+            // Hide the popup
+            popupHive.style.display = "none";
+        });
+        
+        /*
+        *   HE RPC NODES
+        */
+
+
+        // Get a reference to the button and the popup container
+        var buttonEngine = document.getElementById("popup-button-engine");
+        var popupEngine = document.getElementById("popup-container-engine");        
+
+        // Add an event listener to the button
+        buttonEngine.addEventListener("click", function() {
+            // Show the popup
+            popupEngine.style.display = "block";
+        });
+
+        // Get a reference to the API list table body
+        var tableBodyEngine = document.querySelector("#api-list-engine tbody");
+
+        // Add event listeners to the rows in the table body
+        var rowsEngine = tableBodyEngine.getElementsByTagName("tr");
+        for (var i = 0; i < rowsEngine.length; i++) 
+        {
+            rowsEngine[i].addEventListener("click", function(event) {
+                // Prevent the default link behavior
+                event.preventDefault();
+
+                // Get the node URL from the first cell in the row
+                var nodeUrl = this.cells[0].textContent;
+
+                // Set the API endpoint to the selected node
+                ssc = new SSC(nodeUrl);
+
+                // Update the button text
+                buttonEngine.value = nodeUrl;
+                buttonEngine.innerHTML = nodeUrl;
+
+                // Save the selected endpoint to local storage
+                localStorage.setItem("selectedEngEndpoint", nodeUrl);
+
+                // Hide the popup
+                popupEngine.style.display = "none";
+
+                // Reload the page after 1 second (adjust the time as needed)
+                setTimeout(function() {
+                    location.reload();
+                }, 1000);
+            });
+        }
+
+        // Add an event listener to the close button
+        var closeButtonEngine = document.getElementById("close-button-engine");
+        closeButtonEngine.addEventListener("click", function() {
+            // Hide the popup
+            popupEngine.style.display = "none";
         });
     });
 
@@ -700,10 +1020,34 @@ $(window).bind("load", function () {
         catch (error) {
             console.log("setSwapAmounts : ", error);
         }
-    };
+    };    
 
     //End of refresh
 });
+
+async function getSelectedEndpoint() {
+    var endpoint = await localStorage.getItem("selectedEndpoint");
+    if (endpoint) 
+    {
+      return endpoint;
+    } 
+    else 
+    {
+      return "https://anyx.io";
+    }
+};
+
+async function getSelectedEngEndpoint() {
+    var endpoint = await localStorage.getItem("selectedEngEndpoint");
+    if (endpoint) 
+    {
+      return endpoint;
+    } 
+    else 
+    {
+      return "https://engine.rishipanthee.com";
+    }
+};
 
 
 const historyReader = async () => {

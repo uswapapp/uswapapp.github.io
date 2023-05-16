@@ -62,7 +62,14 @@
     <div class="bottom-bar">
         <div class="developed-by-container">
             <p>Developed by <a class="alih-color" href="https://peakd.com/@ali-h" target="_blank">@ali-h</a> & <a class="theguruasia-color" href="https://peakd.com/@theguruasia" target="_blank">@theguruasia</a></p>
-        </div>          
+        </div>  
+        <div class="popup-by-container">
+            <span class="popup-by-container-text">Hive API Node : </span>
+            <button id="popup-button-hive" class="popup-link" value="https://anyx.io">https://anyx.io</button>
+            <span class="popup-by-container-text">&nbsp;</span>
+            <span class="popup-by-container-text">Engine API Node : </span>
+            <button id="popup-button-engine" class="popup-link" value="https://engine.rishipanthee.com/">https://engine.rishipanthee.com</button>
+        </div>       
         <div class="theme-buttons-container"> 
                 <p class="m-0 themes-color">Theme: </p>           
                 <button type="button" id="changeThemeBlack" class="btn text-light rounded-pill pointer">
@@ -76,6 +83,42 @@
                     </svg>
                 </button>            
         </div>
+    </div>
+
+    <div id="popup-container-hive" style="display: none;">
+        <p class="popup-container-text">Please select an API node:</p>
+        <table id="api-list-hive">
+            <thead>
+              <tr>
+                <th class="header-node-url-hive">Node URL</th>
+                <th class="header-status-hive">Status</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <button id="close-button-hive" class="close-btn">
+            <svg class="close-button-color" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+        </button>
+    </div>
+
+    <div id="popup-container-engine" style="display: none;">
+        <p class="popup-container-text">Please select an API node:</p>
+        <table id="api-list-engine">
+            <thead>
+              <tr>
+                <th class="header-node-url-engine">Node URL</th>
+                <th class="header-status-engine">Status</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <button id="close-button-engine" class="close-btn">
+            <svg class="close-button-color" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+        </button>
     </div>
 
     <div class="modal fade" id="authqr" data-bs-backdrop="static" data-bs-keyboard="true">

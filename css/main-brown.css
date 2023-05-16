@@ -272,10 +272,6 @@ p.fee {
     color: #421e00;
 }
 
-p.details {
-    color: #00ccff;
-}
-
 p.liquidity {
     color: #d3bcac;
 }
@@ -285,7 +281,8 @@ span.fee {
 }
 
 span.details {
-    color: #ebebeb;
+    color: #ebebeb;    
+    font-weight: 400;
 }
 
 span.token {
@@ -503,12 +500,6 @@ svg.svg-coffee-color path {
   background-color: #6F4E37;
 }
 
-.bottom-bar {
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-}
-
 .fixed {
     position: fixed;
     bottom: 0;
@@ -518,51 +509,49 @@ svg.svg-coffee-color path {
     position: fixed;
     bottom: 0;
     width: 100%;
-    height: 35px; /* adjust the height as needed */
-    background-color: #6F4E37; /* adjust the color as needed */
+    height: auto;
+    background-color: #6F4E37;
     text-align: center;
     line-height: 30px;
-    z-index: 999; /* set a high z-index to make sure the element stays on top */
+    z-index: 999;
     opacity: 0.8;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px;
 }
-
+  
 .theme-buttons-container {
-    position: absolute;
-    right: 0;
-    bottom: 0;
     display: flex;
     align-items: center;
-    justify-content: center;
-    height: 100%;
-    padding-right: 10px; /* add some padding for spacing */
+    justify-content: flex-end;
+    padding-right: 10px;
 }
-
+  
 .theme-buttons-container button {
     width: 30px;
     height: 30px;
     padding: 0;
-    margin-left: 5px; /* add some margin between buttons */
+    margin-left: 5px;
 }
   
 .theme-buttons-container svg {
     width: 100%;
     height: 100%;
 }
-
+  
 .themes-color {
     margin-right: 10px;
     align-items: center;
     color: #ffffff;
 }
-
+  
 .developed-by-container {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    padding-left: 10px; /* add some padding for spacing */
-    margin-bottom: 5px; /* add some margin from the bottom bar */
+    padding-left: 10px;
+    margin-bottom: 5px;
 }
-
+  
 .developed-by-container p {
     margin: 0;
     color: #421e00;
@@ -584,4 +573,176 @@ svg.svg-coffee-color path {
 .theguruasia-color:hover {
     color: #ffffff;
     transition: all 4.0s ease-out;
+}
+
+.popup-link {
+    background: none;
+    border: none;
+    color: #ffd95b;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+#popup-container-hive {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #e0d4ca;
+    padding: 20px;
+    border-radius: 5px;
+    z-index: 9999;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center the contents vertically */
+    width: 80vw; /* Adjust the width as needed */
+    max-width: 400px; /* Set a max-width to prevent it from growing too wide */
+    opacity: 0.8;
+}
+
+#popup-container-hive #close-button-hive {
+    align-self: flex-end;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    height: 50px;
+    width: 50px;
+    margin-bottom: 10px;
+}
+  
+#popup-container-hive #close-button-hive svg {
+    height: 100%;
+    width: 100%;
+}
+
+.svg.close-button-color path {
+    fill: #6F4E37;
+    transition: fill 0.3s ease;
+}
+  
+.svg.close-button-color:hover path {
+    fill: #421e00;
+    transition: fill 0.3s ease;
+}
+    
+#close-button-hive {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    cursor: pointer;
+    border: none;
+}
+
+.popup-container-text {
+    text-align: center;
+    font-weight: bold;
+    color: #421e00;
+}
+
+.popup-by-container-text {
+    color: #e0d4ca;
+}
+
+#api-list-hive {
+    width: 100%; /* Make the table fill the available space */
+}
+
+.header-status-hive {
+    text-align: center; /* Center the "Status" column text */
+}
+
+#popup-container-engine {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #e0d4ca;
+    padding: 20px;
+    border-radius: 5px;
+    z-index: 9999;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center the contents vertically */
+    width: 80vw; /* Adjust the width as needed */
+    max-width: 400px; /* Set a max-width to prevent it from growing too wide */
+    opacity: 0.8;
+}
+
+#popup-container-engine #close-button-engine {
+    align-self: flex-end;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    height: 50px;
+    width: 50px;
+    margin-bottom: 10px;
+}
+  
+#popup-container-engine #close-button-engine svg {
+    height: 100%;
+    width: 100%;
+}
+
+#close-button-engine {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    cursor: pointer;
+    border: none;
+}
+
+#api-list-engine {
+    width: 100%; /* Make the table fill the available space */
+}
+
+.header-status-engine {
+    text-align: center; /* Center the "Status" column text */
+} 
+
+.working {
+    color: #01ac01;
+}
+  
+.fail {
+    color: #ff0000;
+}
+
+/* hover styles */
+tr:hover .working {
+    color: #ffffff;
+    background-color: #01ac01;
+}
+  
+tr:hover .fail {
+    color: #ffffff;
+    background-color: #ff0000;
+}
+  
+/* new styles for node URLs */
+.node-url {
+    color: #0077ff;
+    cursor: pointer;
+}
+  
+tr:hover .node-url {
+    color: #ffffff;
+    background-color: #0077ff;
+}
+  
+.header-node-url-hive {
+    color: #421e00; /* red font color */
+}
+  
+.header-status-hive {
+    color: #421e00; /* green font color */
+}
+
+.header-node-url-engine {
+    color: #421e00; /* red font color */
+}
+  
+.header-status-engine {
+    color: #421e00; /* green font color */
 }
