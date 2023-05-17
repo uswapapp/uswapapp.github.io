@@ -575,7 +575,7 @@ svg.svg-coffee-color:hover path {
 .themes-color {
     margin-right: 10px;
     align-items: center;
-    color: #ffffff;
+    color: #c5c5c5;
 }
 
 @media (max-width: 767px) {
