@@ -471,8 +471,18 @@ svg.svg-dark-color path {
     transition: fill 0.3s ease;
 }
 
+svg.svg-dark-color:hover path {
+    fill: #ffd95b;
+    transition: fill 0.3s ease;
+}
+
 svg.svg-coffee-color path {
     fill: #8b8b8b;
+    transition: fill 0.3s ease;
+}
+
+svg.svg-coffee-color:hover path {
+    fill: #ffffff;
     transition: fill 0.3s ease;
 }
 
@@ -521,6 +531,13 @@ svg.svg-coffee-color path {
     align-items: center;
     padding: 5px;
 }
+
+.popup-by-container > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+}
   
 .theme-buttons-container {
     display: flex;
@@ -528,23 +545,37 @@ svg.svg-coffee-color path {
     justify-content: flex-end;
     padding-right: 10px;
 }
-  
+
 .theme-buttons-container button {
     width: 30px;
     height: 30px;
     padding: 0;
     margin-left: 5px;
 }
-  
+
 .theme-buttons-container svg {
     width: 100%;
     height: 100%;
 }
-  
+
 .themes-color {
     margin-right: 10px;
     align-items: center;
     color: #ffffff;
+}
+
+@media (max-width: 480px) {
+    .popup-by-container {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+@media (max-width: 767px) {
+    .bottom-bar {
+        flex-direction: column;
+        align-items: center;
+    }
 }
   
 .developed-by-container {
@@ -633,6 +664,11 @@ svg.svg-coffee-color path {
     cursor: pointer;
     border: none;
 }
+
+#close-button-hive:hover .close-button-color path {
+    fill: #000000;
+    transition: fill 0.3s ease;
+}
   
 .popup-container-text {
     text-align: center;
@@ -693,6 +729,11 @@ svg.svg-coffee-color path {
     cursor: pointer;
     border: none;
 }
+
+#close-button-engine:hover .close-button-color path {
+    fill: #000000;
+    transition: fill 0.3s ease;
+}
   
 #api-list-engine {
     width: 100%; /* Make the table fill the available space */
@@ -746,4 +787,14 @@ tr:hover .node-url {
   
 .header-status-engine {
     color: #222222; /* green font color */
+}
+
+#popup-button-hive:hover {
+    color: #00e065;
+    transition: fill 0.3s ease;
+}
+
+#popup-button-engine:hover {
+    color: #00e065;
+    transition: fill 0.3s ease;
 }
