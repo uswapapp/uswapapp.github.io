@@ -467,7 +467,7 @@ link[rel=stylesheet] {
 }
 
 svg.svg-dark-color path {
-    fill: #421e00;
+    fill: #caa78a;
     transition: fill 0.3s ease;
 }
 
@@ -501,13 +501,13 @@ svg.svg-coffee-color:hover path {
 }
 
 #changeThemeBlack {
-    background-color: #6F4E37;
+    background-color: #421e00;
     margin-right: 5px;
 }
 
 #changeThemeBrown {
   margin-right: 20px;
-  background-color: #6F4E37;
+  background-color: #421e00;
 }
 
 .fixed {
@@ -520,7 +520,7 @@ svg.svg-coffee-color:hover path {
     bottom: 0;
     width: 100%;
     height: auto;
-    background-color: #6F4E37;
+    background-color: #421e00;
     text-align: center;
     line-height: 30px;
     z-index: 999;
@@ -626,24 +626,26 @@ svg.svg-coffee-color:hover path {
   
 .developed-by-container p {
     margin: 0;
-    color: #421e00;
+    color: #e0d4ca;
 }
 
 .alih-color {
-    color: #421e00;
+    color: #e0d4ca;
+    transition: all 1.0s ease-out;
 }
 
 .theguruasia-color {
-    color: #421e00;
+    color: #e0d4ca;
+    transition: all 1.0s ease-out;
 }
 
 .alih-color:hover {
-    color: #ffffff;
+    color: #009ee7;
     transition: all 4.0s ease-out;
 }
 
 .theguruasia-color:hover {
-    color: #ffffff;
+    color: #009ee7;
     transition: all 4.0s ease-out;
 }
 
@@ -653,6 +655,7 @@ svg.svg-coffee-color:hover path {
     color: #ffd95b;
     text-decoration: underline;
     cursor: pointer;
+    transition: all 1.0s ease-out;
 }
 
 #popup-container-hive {
@@ -688,22 +691,13 @@ svg.svg-coffee-color:hover path {
     width: 100%;
 }
 
-.svg.close-button-color path {
-    fill: #6F4E37;
-    transition: fill 0.3s ease;
-}
-  
-.svg.close-button-color:hover path {
-    fill: #421e00;
-    transition: fill 0.3s ease;
-}
-    
 #close-button-hive {
     position: absolute;
     top: 5px;
     right: 5px;
     cursor: pointer;
     border: none;
+    transition: fill 0.3s ease;
 }
 
 #close-button-hive:hover .close-button-color path {
@@ -769,6 +763,7 @@ svg.svg-coffee-color:hover path {
     right: 5px;
     cursor: pointer;
     border: none;
+    transition: fill 0.3s ease;
 }
 
 #close-button-engine:hover .close-button-color path {

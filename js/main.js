@@ -24,6 +24,8 @@ $(window).bind("load", function () {
 		"https://api.primersion.com",
 		"https://herpc.actifit.io"
     ];
+    
+    let ssc;
 
     async function checkHiveNodeStatus(nodeUrl, statusElement) {
         try 
@@ -111,9 +113,7 @@ $(window).bind("load", function () {
         {
             console.log("Error at addHiveNodes(): ", error);
         }
-    };      
-
-    addHiveNodes();
+    }; 
 
     async function checkEngineNodeStatus(nodeUrl, statusElement) {
         try 
@@ -203,10 +203,6 @@ $(window).bind("load", function () {
         }
     };
 
-    addEngineNodes();
-
-    let ssc;
-
     async function initializeHiveAPI() {
         var selectedEndpoint = await getSelectedEndpoint();
         console.log("SELECTE HIVE API NODE : ", selectedEndpoint);
@@ -216,8 +212,6 @@ $(window).bind("load", function () {
         button.value = selectedEndpoint;
         button.innerHTML = selectedEndpoint;
     }
-    
-    initializeHiveAPI();
 
     async function initializeEngineAPI() {
         var selectedEngEndpoint = await getSelectedEngEndpoint();
@@ -228,8 +222,22 @@ $(window).bind("load", function () {
         button.value = selectedEngEndpoint;
         button.innerHTML = selectedEngEndpoint;
     }
-    
-    initializeEngineAPI();
+
+    async function processAPIs() {
+        try {
+            await addHiveNodes();
+            await addEngineNodes();
+            await initializeHiveAPI();
+            await initializeEngineAPI();
+            refresh();
+        } 
+        catch (error) 
+        {
+            console.log("Error while processing APIs: ", error);
+        }
+    };
+      
+    processAPIs();    
 
     hive.config.set('alternative_api_endpoints', rpc_nodes);
 
@@ -944,8 +952,6 @@ $(window).bind("load", function () {
             }
         });
     });
-
-    refresh();
 
     $(".refreshHistory").click(function () {
         historyReader();
