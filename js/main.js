@@ -230,6 +230,7 @@ $(window).bind("load", function () {
             await initializeHiveAPI();
             await initializeEngineAPI();
             refresh();
+            getExtBridge();
         } 
         catch (error) 
         {
@@ -257,85 +258,104 @@ $(window).bind("load", function () {
     }
 
     async function getBalances(account) {
-        const res = await hive.api.getAccountsAsync([account]);
-        if (res.length > 0) {
-            const res2 = await ssc.find("tokens", "balances", { account, symbol: { "$in": ["SWAP.HIVE", "VAULT"] } }, 1000, 0, []);
-            var swaphive = res2.find(el => el.symbol === "SWAP.HIVE");
-            var vault = res2.find(el => el.symbol === "VAULT");
-            return {
-                HIVE: dec(parseFloat(res[0].balance.split(" ")[0])),
-                "SWAP.HIVE": dec(parseFloat((swaphive) ? swaphive.balance : 0)),
-                VAULT: dec(parseFloat((vault) ? vault.balance : 0))
+        try
+        {
+            const res = await hive.api.getAccountsAsync([account]);
+            if (res.length > 0) 
+            {
+                const res2 = await ssc.find("tokens", "balances", { account, symbol: { "$in": ["SWAP.HIVE", "VAULT"] } }, 1000, 0, []);
+                var swaphive = res2.find(el => el.symbol === "SWAP.HIVE");
+                var vault = res2.find(el => el.symbol === "VAULT");
+                return {
+                    HIVE: dec(parseFloat(res[0].balance.split(" ")[0])),
+                    "SWAP.HIVE": dec(parseFloat((swaphive) ? swaphive.balance : 0)),
+                    VAULT: dec(parseFloat((vault) ? vault.balance : 0))
+                }
+            } 
+            else
+            {
+                return { HIVE: 0, "SWAP.HIVE": 0, VAULT: 0 };
             }
-
-        } else return { HIVE: 0, "SWAP.HIVE": 0, VAULT: 0 };
+        }
+        catch (error)
+        {
+            console.log("Error at getBalances() : ", error);
+        }
     }
 
     async function getExtBridge () {
+        try
+        {
+            const res = await hive.api.getAccountsAsync(['kswap']);
+            var hiveLiq = res[0].balance.split(" ")[0];
+            hiveLiq = Math.floor(hiveLiq * DECIMAL) / DECIMAL;
 
-        const res = await hive.api.getAccountsAsync(['kswap']);
-        var hiveLiq = res[0].balance.split(" ")[0];
-        hiveLiq = Math.floor(hiveLiq * DECIMAL) / DECIMAL;
+            const res2 = await ssc.findOne("tokens", "balances", { account: 'kswap', symbol: 'SWAP.HIVE' });
+            var swaphiveLiq = parseFloat(res2.balance) || 0.0;
+            swaphiveLiq = Math.floor(swaphiveLiq * DECIMAL) / DECIMAL;
 
-        const res2 = await ssc.findOne("tokens", "balances", { account: 'kswap', symbol: 'SWAP.HIVE' });
-        var swaphiveLiq = parseFloat(res2.balance) || 0.0;
-        swaphiveLiq = Math.floor(swaphiveLiq * DECIMAL) / DECIMAL;
-
-        $("#hive_liq").text(hiveLiq);
-
-        $("#swap_liq").text(swaphiveLiq);
-
-        $("#bridge").removeClass("d-none");
-
-    }   
-
-    getExtBridge();
+            $("#hive_liq").text(hiveLiq);
+            $("#swap_liq").text(swaphiveLiq);
+            $("#bridge").removeClass("d-none");
+        }
+        catch (error)
+        {
+            console.log("Error at getExtBridge() : ", error);
+        }
+    };   
 
     async function refresh() {
-        updateMin();
-        bridgebal = await getBalances("uswap");
-        $("#hiveliquidity").text(bridgebal.HIVE.toFixed(3));
-        $("#swaphiveliquidity").text(bridgebal["SWAP.HIVE"].toFixed(3));
-        console.log("");
-        console.log(
-            'Update Hive Liquidity: ' + bridgebal.HIVE.toFixed(3) + ' HIVE',
-        );
+        try
+        {
+            updateMin();
+            bridgebal = await getBalances("uswap");
+            $("#hiveliquidity").text(bridgebal.HIVE.toFixed(3));
+            $("#swaphiveliquidity").text(bridgebal["SWAP.HIVE"].toFixed(3));
+            console.log("");
+            console.log(
+                'Update Hive Liquidity: ' + bridgebal.HIVE.toFixed(3) + ' HIVE',
+            );
 
-        console.log(
-            'Update SWAP.HIVE Liquidity: ' + bridgebal["SWAP.HIVE"].toFixed(3) + ' SWAP.HIVE',
-        );
+            console.log(
+                'Update SWAP.HIVE Liquidity: ' + bridgebal["SWAP.HIVE"].toFixed(3) + ' SWAP.HIVE',
+            );
 
-        const total = bridgebal.HIVE + bridgebal["SWAP.HIVE"];
-        const stablereq = total * 0.15;
+            const total = bridgebal.HIVE + bridgebal["SWAP.HIVE"];
+            const stablereq = total * 0.15;
 
-        if (bridgebal.HIVE < stablereq) {
-            stablereqHive = Math.floor((stablereq - bridgebal.HIVE) * 1000) / 1000;
-            $("#reqhive").text(stablereqHive.toFixed(3));
-        }
-        else {
-            $("#reqhive").text("0"); 
-        }
-
-        if (bridgebal["SWAP.HIVE"] < stablereq) {
-            stablereqSwapHive = Math.floor((stablereq - bridgebal["SWAP.HIVE"]) * 1000) / 1000;
-            $("#reqswaphive").text(stablereqSwapHive.toFixed(3));
-        }
-        else {
-            $("#reqswaphive").text("0"); 
-        }
-
-        try {
-            if (hive_keychain) {
-                $("#txtype").removeAttr("disabled");
-                $("#txtype").attr("checked", true);
+            if (bridgebal.HIVE < stablereq) {
+                stablereqHive = Math.floor((stablereq - bridgebal.HIVE) * 1000) / 1000;
+                $("#reqhive").text(stablereqHive.toFixed(3));
             }
-        }
-        catch (e) {
-            $("#txtype").attr("disabled", true);
-            $("#txtype").removeAttr("checked");
-        }
+            else {
+                $("#reqhive").text("0"); 
+            }
 
-        $("input[name=txtype]").change();
+            if (bridgebal["SWAP.HIVE"] < stablereq) {
+                stablereqSwapHive = Math.floor((stablereq - bridgebal["SWAP.HIVE"]) * 1000) / 1000;
+                $("#reqswaphive").text(stablereqSwapHive.toFixed(3));
+            }
+            else {
+                $("#reqswaphive").text("0"); 
+            }
+
+            try {
+                if (hive_keychain) {
+                    $("#txtype").removeAttr("disabled");
+                    $("#txtype").attr("checked", true);
+                }
+            }
+            catch (e) {
+                $("#txtype").attr("disabled", true);
+                $("#txtype").removeAttr("checked");
+            }
+
+            $("input[name=txtype]").change();
+        }
+        catch (error)
+        {
+            console.log("Error at refresh() : ", error);
+        }
     };
 
     $("#refresh").click(async function () {
@@ -350,7 +370,8 @@ $(window).bind("load", function () {
     }
 
     function updateSwap(r) {
-        try {
+        try 
+        {
             updateMin();
             const insymbol = $("#input").val();
             var outsymbol = $("#output").val();
@@ -431,8 +452,11 @@ $(window).bind("load", function () {
                 if (r) r(false);
             }
         } 
-        catch (e) { console.log(e); }
-    }
+        catch (error) 
+        { 
+            console.log("Error at updateSwap () : ", error); 
+        }
+    };
 
     var modal = new bootstrap.Modal(document.getElementById('authqr'), {
         focus: true,
@@ -457,24 +481,31 @@ $(window).bind("load", function () {
     });
 
     async function updateBalance() {
-        bal = await getBalances(user);
-        console.log("");
-        console.log(
-            `Update Hive Balance: @${user} ` + bal.HIVE.toFixed(3) + ' HIVE',
-        );
+        try
+        {
+            bal = await getBalances(user);
+            console.log("");
+            console.log(
+                `Update Hive Balance: @${user} ` + bal.HIVE.toFixed(3) + ' HIVE',
+            );
 
-        console.log(
-            `Update SWAP.HIVE Balance: @${user} ` + bal["SWAP.HIVE"].toFixed(3) + ' SWAP.HIVE',
-        );
+            console.log(
+                `Update SWAP.HIVE Balance: @${user} ` + bal["SWAP.HIVE"].toFixed(3) + ' SWAP.HIVE',
+            );
 
-        console.log(
-            `Update VAULT Balance: @${user} ` + bal.VAULT.toFixed(3) + ' VAULT',
-        );
+            console.log(
+                `Update VAULT Balance: @${user} ` + bal.VAULT.toFixed(3) + ' VAULT',
+            );
 
-        $("#hive").text(bal.HIVE.toFixed(3));
-        $("#swaphive").text(bal["SWAP.HIVE"].toFixed(3));
-        $("#vault").text(bal.VAULT.toFixed(3));
-    }
+            $("#hive").text(bal.HIVE.toFixed(3));
+            $("#swaphive").text(bal["SWAP.HIVE"].toFixed(3));
+            $("#vault").text(bal.VAULT.toFixed(3));
+        }
+        catch (error)
+        {
+            console.log("Error at updateBalance() : ", error);
+        }
+    };
 
     $("#checkbalance").click(async function () {
         user = $.trim($("#username").val().toLowerCase());
@@ -644,7 +675,7 @@ $(window).bind("load", function () {
         $("#username").val(localStorage['user']);
         user = localStorage['user'];
         updateBalance();
-    }
+    };
 
     // HAS implementation
     const HAS_SERVER = "wss://hive-auth.arcange.eu";
@@ -1008,7 +1039,8 @@ $(window).bind("load", function () {
 
     async function setSwapAmounts() {
         var TIMEOUT = 1000 * 10;
-        try {
+        try 
+        {
             await timeout(TIMEOUT);
             console.log("Restting to Zero");
             $("#inputquantity").val("0.000");
@@ -1054,7 +1086,6 @@ async function getSelectedEngEndpoint() {
       return "https://engine.rishipanthee.com";
     }
 };
-
 
 const historyReader = async () => {
     try {
