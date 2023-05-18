@@ -546,7 +546,7 @@ svg.svg-coffee-color:hover path {
     align-items: center; /* Center the contents vertically */
     width: 80vw; /* Adjust the width as needed */
     max-width: 400px; /* Set a max-width to prevent it from growing too wide */
-    opacity: 0.8;
+    opacity: 0.9;
 }
 
 #popup-container-hive #close-button-hive {
@@ -612,7 +612,7 @@ svg.svg-coffee-color:hover path {
     align-items: center; /* Center the contents vertically */
     width: 80vw; /* Adjust the width as needed */
     max-width: 400px; /* Set a max-width to prevent it from growing too wide */
-    opacity: 0.8;
+    opacity: 0.9;
 }
 
 #popup-container-engine #close-button-engine {
