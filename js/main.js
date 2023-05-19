@@ -224,13 +224,12 @@ $(window).bind("load", function () {
     }
 
     async function processAPIs() {
-        try {
-            await addHiveNodes();
-            await addEngineNodes();
+        try 
+        {  
+            await addHiveNodes();  
             await initializeHiveAPI();
-            await initializeEngineAPI();
-            refresh();
-            getExtBridge();
+            await addEngineNodes();
+            await initializeEngineAPI();            
         } 
         catch (error) 
         {
@@ -238,7 +237,7 @@ $(window).bind("load", function () {
         }
     };
       
-    processAPIs();    
+    processAPIs();   
 
     hive.config.set('alternative_api_endpoints', rpc_nodes);
 
@@ -558,8 +557,8 @@ $(window).bind("load", function () {
         var popupHive = document.getElementById("popup-container-hive");        
 
         // Add an event listener to the button
-        buttonHive.addEventListener("click", function() {
-            // Show the popup
+        buttonHive.addEventListener("click", async function() {
+            // Show the popup            
             popupHive.style.display = "block";
         });
 
@@ -614,8 +613,8 @@ $(window).bind("load", function () {
         var popupEngine = document.getElementById("popup-container-engine");        
 
         // Add an event listener to the button
-        buttonEngine.addEventListener("click", function() {
-            // Show the popup
+        buttonEngine.addEventListener("click", async function() {
+            // Show the popup            
             popupEngine.style.display = "block";
         });
 
@@ -659,6 +658,9 @@ $(window).bind("load", function () {
             // Hide the popup
             popupEngine.style.display = "none";
         });
+
+        refresh();
+        getExtBridge();
     });
 
     $(window).scroll(function() {
@@ -720,7 +722,7 @@ $(window).bind("load", function () {
             return true;
         else
             return false;
-    }
+    }    
 
     $("#swap").click(async function () {
         $("#swap").attr("disabled", "true");
