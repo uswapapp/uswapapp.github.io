@@ -451,7 +451,7 @@ svg.svg-coffee-color:hover path {
     color: #e0d4ca;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 768px) {
     .bottom-bar {
         flex-direction: column;
         align-items: center;
@@ -464,6 +464,17 @@ svg.svg-coffee-color:hover path {
     .developed-by-container {
         text-align: center;
         flex-basis: 100%;
+    }
+    .theme-buttons-container {
+        text-align: center;
+        flex-basis: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+    }
+    .theme-buttons-container p {
+        margin-right: 10px;
     }
 }
 
