@@ -441,7 +441,14 @@ $(window).bind("load", function () {
 
     function updateMin() {
         const insymbol = $("#input").val();
-        $("#minimum").text(`1 ${insymbol}`);
+        if(insymbol === "HIVE" || insymbol === "SWAP.HIVE")
+        {
+            $("#minimum").text(`1 ${insymbol}`);
+        }
+        if(insymbol == "VAULT")
+        {
+            $("#minimum").text(`10 ${insymbol}`);
+        }
     }
 
     function updateSwap(r) {
@@ -518,7 +525,17 @@ $(window).bind("load", function () {
             if (bridgebal[outsymbol] >= output
                 && bal[insymbol] >= val
                 && insymbol !== outsymbol
-                && val >= 1) {
+                && val >= 1
+                && (insymbol === "HIVE" || insymbol === "SWAP.HIVE")) {
+                $("#swap").removeAttr("disabled");
+                if (r) r(true, parseFloat(val).toFixed(3), insymbol, `Swapping to ${(outsymbol === 'SWAP.HIVE') ? 'Swap.Hive' : 'Hive'}`);
+            }
+            else if(bridgebal[outsymbol] >= output
+                && bal[insymbol] >= val
+                && insymbol !== outsymbol
+                && val >= 10
+                && insymbol === "VAULT")
+            {
                 $("#swap").removeAttr("disabled");
                 if (r) r(true, parseFloat(val).toFixed(3), insymbol, `Swapping to ${(outsymbol === 'SWAP.HIVE') ? 'Swap.Hive' : 'Hive'}`);
             } 
