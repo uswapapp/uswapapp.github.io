@@ -1446,7 +1446,8 @@ $(window).bind("load", function () {
             $("#outputquantity").val("0.000");
             $("#status").text("");
             $("#status").removeClass("text-success");
-            $("#fee").text("0.000");            
+            $("#fee").text("0.000"); 
+            $("#slipageqty").text("0.000");           
             $("#swap").attr("disabled", "true");
 
             $("#vaultreward").text("0.000");
