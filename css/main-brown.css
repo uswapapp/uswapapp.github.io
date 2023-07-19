@@ -219,6 +219,10 @@ span.token {
     color: #e6d8ce;
 }
 
+.span-font-color-one {
+    color: #ffffff;
+}
+
 svg path {
     fill: #421e00;
 }
@@ -793,4 +797,67 @@ tr:hover .node-url {
 
 .text-success {
     color: #ffd95b !important;
+}
+
+.heading-group {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2px;
+    margin-top: 15px;
+    border-top: 1px solid rgb(160, 160, 160);
+}
+
+.slippage-scale {
+    margin-top: 100px; 
+    margin-bottom: 10px;
+    color: #ffffff !important;
+}
+
+.r-button-flex {
+    display: flex;
+    flex-wrap: wrap;
+}
+  
+input[type="radio"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 0;
+    height: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+    outline: none;
+}
+  
+label {
+    display: inline-block;
+    margin-right: 10px;
+}
+  
+.radio-label {
+    display: inline-block;
+    margin-right: 20px;
+    color: rgb(255, 255, 255);
+}
+  
+.radio-label input[type="radio"]:checked ~ span {
+    color: #ffd900;
+} 
+  
+.button-group, .r-button-flex {
+    background-color: #421e00;
+    border: none;
+    border-radius: 5px;
+    padding: 2px;
+    font-size: 15px;
+    justify-content: center;
+}
+
+.receive-group {
+    margin-top: 10px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgb(160, 160, 160);
+    color: #ffffff;
 }
