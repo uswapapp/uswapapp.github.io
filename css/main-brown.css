@@ -861,3 +861,72 @@ label {
     border-bottom: 1px solid rgb(160, 160, 160);
     color: #ffffff;
 }
+
+.popup-msg-bar {
+    position: fixed;
+    top: 50%; /* Place the top of the box at the middle of the page */
+    left: 50%; /* Place the left side of the box at the middle of the page */
+    transform: translate(-50%, -50%); /* Center the box horizontally and vertically */
+    width: 80%; /* Adjust the width of the box as needed */
+    max-width: 400px; /* Set a maximum width for the box if desired */
+    padding: 20px; /* Add some padding for better appearance */
+    background-color: #ffffff;
+    text-align: justify;
+    line-height: 1.5; /* Adjust the line height for better readability */
+    z-index: 999;
+    opacity: 0.95;
+    color: #421e00;
+    font-size: 16px;
+    border-radius: 10px; /* Add rounded corners for a message box look */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Add a shadow effect */
+}
+
+.popup-msg-bar-important {
+    font-size: 20px !important;
+    font-weight: bold;
+    text-align: center !important;
+    color: #ff0000 !important;
+}
+
+.center-close-button {
+    display: flex;
+    justify-content: center;
+    margin-top: 15px; /* Adjust the margin to position the button below the message text */
+}
+
+/* Close button styles */
+.popup-msg-close-button {
+    font-size: 16px; /* Adjust the font size as needed */
+    font-weight: bold;
+    background-color: #ff0000;
+    border: none;
+    padding: 8px 16px; /* Adjust the padding as needed */
+    border-radius: 5px;
+    color: #ffffff;
+    cursor: pointer;
+}
+
+.contact-msg-link {
+    color: #421e00;
+    transition: all 0.2s ease-in-out;
+}
+
+.contact-msg-link:hover {
+    color: #8d603b; /* Change the font color on hover */
+    transition: all 0.2s ease-in-out;
+}
+
+.discord-msg-color:hover path {
+    fill: #8d603b; /* Change the SVG icon color on hover */
+    transition: all 0.2s ease-in-out;
+}
+
+.receive-group {
+    display: flex;
+    align-items: center;
+}
+
+.secure-fee-info {
+    display: flex;
+    align-items: center;
+}

@@ -36,6 +36,8 @@ $(window).bind("load", function () {
     let NORMALFEE = 0.001;
     let SPECFEE = 0.004;
     let REWARD = 0.0037;
+    let SECUREFEESTATUS = false;
+    let SECUREFEE = 0.001;
 
     let DECIMAL = 1000;
 
@@ -333,9 +335,7 @@ $(window).bind("load", function () {
     //const ssc = new SSC("https://engine.rishipanthee.com/");    
 
     var user = null, bal = { HIVE: 0, "SWAP.HIVE": 0, VAULT: 0 }, bridgebal;
-    let stablereqHive = 0;
-    let stablereqSwapHive = 0;
-
+    
     function dec(val) {
         return Math.floor(val * 1000) / 1000;
     };
@@ -346,22 +346,25 @@ $(window).bind("load", function () {
             const res = await hive.api.getAccountsAsync([account]);
             if(res.length > 0)
             {
-                const res2 = await ssc.findOne("tokens", "balances", { account: account, symbol: 'SWAP.HIVE' });
+                const res2 = await ssc.find("tokens", "balances", { account: account, symbol: { "$in": ["SWAP.HIVE", "VAULT"] } }, 1000, 0, []);
                 console.log("res2 : ", res2);
+                var swaphive = res2.find(el => el.symbol === "SWAP.HIVE");
+                var vault = res2.find(el => el.symbol === "VAULT");
                 return {
                     HIVE: dec(parseFloat(res[0].balance.split(" ")[0])),
-                    SHIVE: dec(parseFloat(res2.balance))
+                    SHIVE: dec(parseFloat((swaphive) ? swaphive.balance : 0)),
+                    VAULT: dec(parseFloat((vault) ? vault.balance : 0))
                 }
             }
             else
             {
-                return { HIVE: 0.0, SHIVE: 0.0 }
+                return { HIVE: 0.0, SHIVE: 0.0, VAULT: 0.0 }
             }
         }
         catch (error)
         {
             console.log("Error at getBalances () : ", error);
-            return { HIVE: 0.0, SHIVE: 0.0 }
+            return { HIVE: 0.0, SHIVE: 0.0, VAULT: 0.0 }
         }
     };    
     
@@ -474,6 +477,21 @@ $(window).bind("load", function () {
         let calcResult = [];
         try
         {
+            let SPECIFICFEE = 0.0;
+            let SWAPREWARD = 0.0;
+            if(SECUREFEESTATUS == true)
+            {
+                SPECIFICFEE = SPECFEE + SECUREFEE;
+                console.log("SPECIFICFEE : ", SPECIFICFEE);
+                SWAPREWARD = REWARD + SECUREFEE;
+                console.log("SWAPREWARD : ", SWAPREWARD);
+            }
+            else
+            {
+                SPECIFICFEE = SPECFEE;
+                SWAPREWARD = REWARD;
+            }
+            
             if(tOneSplit > BRIDGEFILLED)
             {
                 let tOneSplitQty = Math.floor((tOneSplit - BRIDGEFILLED) * DECIMAL) / DECIMAL;
@@ -489,9 +507,9 @@ $(window).bind("load", function () {
                         let specHiveQty = Math.floor((hiveQty - (tOneSplitQty + tTwoSplit)) * DECIMAL) / DECIMAL;
                         console.log("specHiveQty : ", specHiveQty);
                         let addiHiveFee = Math.ceil((tTwoSplit * NORMALFEE) * DECIMAL) / DECIMAL;                    
-                        let specHiveFee = Math.ceil((specHiveQty * SPECFEE) * DECIMAL) / DECIMAL;
+                        let specHiveFee = Math.ceil((specHiveQty * SPECIFICFEE) * DECIMAL) / DECIMAL;
                         let hiveFee = addiHiveFee + specHiveFee;
-                        let hiveReward = Math.floor(((hiveQty - addiHiveQty) * REWARD) * DECIMAL) / DECIMAL;
+                        let hiveReward = Math.floor(((hiveQty - addiHiveQty) * swapReward) * DECIMAL) / DECIMAL;
                         console.log("hiveFee : ", hiveFee, "&& hiveReward : ", hiveReward);
                         var ddata = {
                             hivefee: hiveFee,
@@ -502,7 +520,7 @@ $(window).bind("load", function () {
                     else
                     {
                         let addiHiveFee = Math.ceil((addiHiveQty * NORMALFEE) * DECIMAL) / DECIMAL;
-                        let hiveReward = Math.floor(((hiveQty - addiHiveQty) * REWARD) * DECIMAL) / DECIMAL;
+                        let hiveReward = Math.floor(((hiveQty - addiHiveQty) * SWAPREWARD) * DECIMAL) / DECIMAL;
                         console.log("addiHiveFee : ", addiHiveFee, "&& hiveReward : ", hiveReward);
                         var ddata = {
                             hivefee: addiHiveFee,
@@ -513,7 +531,7 @@ $(window).bind("load", function () {
                 }
                 else
                 {
-                    let hiveReward = Math.floor((hiveQty * REWARD) * DECIMAL) / DECIMAL;
+                    let hiveReward = Math.floor((hiveQty * SWAPREWARD) * DECIMAL) / DECIMAL;
                     console.log("Hive Fee : 0.00 & Hive Reward : ", hiveReward);
                     var ddata = {
                         hivefee: 0.0,
@@ -536,7 +554,7 @@ $(window).bind("load", function () {
                         console.log("specHiveQty : ", specHiveQty);
                         let addiHiveFee = Math.ceil((tOnetTwoSplitQty * NORMALFEE) * DECIMAL) / DECIMAL;
                         console.log("addiHiveFee : ", addiHiveFee);
-                        let specHiveFee = Math.ceil((specHiveQty * SPECFEE) * DECIMAL) / DECIMAL;
+                        let specHiveFee = Math.ceil((specHiveQty * SPECIFICFEE) * DECIMAL) / DECIMAL;
                         console.log("specHiveFee : ", specHiveFee);
                         let hiveFee = addiHiveFee + specHiveFee;
                         console.log("hiveFee : ", hiveFee);
@@ -559,7 +577,7 @@ $(window).bind("load", function () {
                 }
                 else
                 {
-                    let hiveFee = Math.ceil((hiveQty * SPECFEE) * DECIMAL) / DECIMAL;
+                    let hiveFee = Math.ceil((hiveQty * SPECIFICFEE) * DECIMAL) / DECIMAL;
                     console.log("hiveFee : ", hiveFee);
                     var ddata = {
                         hivefee: hiveFee,
@@ -646,35 +664,7 @@ $(window).bind("load", function () {
                 fee = 0.0;
                 reward = 0.0;
                 val = 0.0;
-            }
-
-            /*
-            if (insymbol === "HIVE" && stablereqHive > 0) {
-                if (val <= stablereqHive) {
-                    fee = 0;
-                    reward = Math.floor((val * 0.00075) * 1000) / 1000;
-                }
-
-                else if (val > stablereqHive) {
-                    reward = Math.floor((stablereqHive * 0.00075) * 1000) / 1000
-                    let overflow = val - stablereqHive;
-                    fee = Math.ceil((overflow * 0.001) * 1000) / 1000;
-                }
-            }
-
-            else if (insymbol === "SWAP.HIVE" && stablereqSwapHive > 0) {
-                if (val <= stablereqSwapHive) {
-                    fee = 0;
-                    reward = Math.floor((val * 0.00075) * 1000) / 1000;
-                }
-
-                else if (val > stablereqSwapHive) {
-                    reward = Math.floor((stablereqSwapHive * 0.00075) * 1000) / 1000
-                    let overflow = val - stablereqSwapHive;
-                    fee = Math.ceil((overflow * 0.001) * 1000) / 1000;
-                }
-            }
-            */
+            }            
 
             $("#fee").text(fee.toFixed(3));
             $("#vaultreward").text(vaultReward.toFixed(3));
@@ -690,7 +680,8 @@ $(window).bind("load", function () {
             }
 
             $("#feeticker").text(insymbol);
-            $("rewardticker").text(insymbol);
+            //$("rewardticker").text(insymbol);
+            rewardticker.textContent = outsymbol;
 
             const output = (insymbol === "VAULT") ? (val / 10) : (val - fee);
 
@@ -748,13 +739,27 @@ $(window).bind("load", function () {
         }
     };
 
-    async function updateSlipageQty(inputVal, outSymbol) {        
+    async function updateSlipageQty(inputVal, outSymbol) {
+        let RADIOFEE = 0.0;        
         let selectedRadioElement = document.querySelector('input[name="my-radio-group"]:checked');
-        let selectedRadioVal = selectedRadioElement ? parseFloat(selectedRadioElement.value) : 0;
-        let calcSlipage = Math.floor((inputVal - (inputVal * selectedRadioVal / 100)) * DECIMAL) / DECIMAL;
+        let selectedRadioVal = selectedRadioElement ? parseFloat(selectedRadioElement.value) : 0;        
+        RADIOFEE = selectedRadioVal / 100;
+        if(SECUREFEESTATUS == true)
+        {
+            RADIOFEE = RADIOFEE + SECUREFEE;
+            $("#securefeestatus").removeClass("d-none");
+            $("#securefeestatus").addClass("secure-fee-info");
+        }
+        else
+        {
+            $("#securefeestatus").removeClass("secure-fee-info");
+            $("#securefeestatus").addClass("d-none");
+        }
+        let calcSlipage = Math.floor((inputVal - (inputVal * RADIOFEE)) * DECIMAL) / DECIMAL;
         let slipageQty = document.getElementById('slipageqty');
         slipageQty.textContent = Math.floor((calcSlipage) * DECIMAL) / DECIMAL;
         minreceivesymbol.textContent = outSymbol;
+        securefeeinfo.textContent = (SECUREFEE * 100) + "%";
         return calcSlipage;
     };
 
@@ -788,6 +793,7 @@ $(window).bind("load", function () {
         try
         {
             bal = await getBalances(user);
+            console.log("bal HERE : ", bal);
             console.log("");
             console.log(
                 `Update Hive Balance: @${user} ` + bal.HIVE.toFixed(3) + ' HIVE',
@@ -799,6 +805,7 @@ $(window).bind("load", function () {
 
             $("#hive").text(bal.HIVE.toFixed(3));
             $("#swaphive").text(bal.SHIVE.toFixed(3));
+            $("#vault").text(bal.VAULT.toFixed(3));
         }
         catch (error)
         {
@@ -852,7 +859,8 @@ $(window).bind("load", function () {
         });
     
         loadHiveNode();
-        loadEngineNode(); 
+        loadEngineNode();
+        loadSecureFeeMsg();
     }); 
 
     async function loadHiveNode() {
@@ -1060,6 +1068,20 @@ $(window).bind("load", function () {
             console.log("Error at loadEngineNode(): ", error);
         }
     };
+    
+    async function loadSecureFeeMsg() {
+        try 
+        {
+            if (SECUREFEESTATUS) {
+                var popUpMsgBar = document.querySelector(".popup-msg-bar");
+                popUpMsgBar.style.display = "block";
+            }            
+        } 
+        catch (error) 
+        {
+            console.log("Error at loadSecureFeeMsg(): ", error);
+        }
+    };    
 
     $(window).scroll(function() {
         var scrollHeight = $(document).height() - $(window).height();
@@ -1371,6 +1393,11 @@ $(window).bind("load", function () {
         });
     });
 
+    $("#closepopupmsg").click (async function () {        
+        var popupMsgBar = document.querySelector(".popup-msg-bar");
+        popupMsgBar.style.display = "none";
+    });
+
     $("input[name=txtype]").change(function () {
         const el = $("input[type='radio'][name='txtype']");
         el.each(function () {
@@ -1454,6 +1481,8 @@ $(window).bind("load", function () {
             $("#reward").text("0.000");
             $("#rewarddiv").removeClass("d-inline");
             $("#rewarddiv").addClass("d-none");
+            $("#securefeestatus").removeClass("secure-fee-info");
+            $("#securefeestatus").addClass("d-none");
         }
         catch (error) {
             console.log("setSwapAmounts : ", error);
