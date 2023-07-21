@@ -252,6 +252,10 @@ svg.bi-arrow-left-right path {
     color: #ffffff !important;
 }
 
+.btn:focus {
+    outline: none !important;
+}
+
 .btn-load {
     background-color: #009ee7;
     border-color: #009ee7;
@@ -735,6 +739,13 @@ tr:hover .node-url {
     width: 30%;
 }
 
+/* Add things from here */
+
+.load-change .input-group-text,
+.load-change .input {
+    font-size: 14px;
+}
+
 .input-div-change {
     width: 100%;
 }
@@ -749,9 +760,8 @@ tr:hover .node-url {
     border-bottom-left-radius: 0 !important;
     border-top-right-radius: 25px !important;
     border-bottom-right-radius: 25px !important;
-    width: auto;
-    flex: 1;
-    height: 35px !important;
+    min-width: fit-content !important;
+    flex: 1 !important;
 }
 
 .input-change {
@@ -760,19 +770,22 @@ tr:hover .node-url {
     border-bottom-left-radius: 25px !important;
     border-top-right-radius: 0 !important;
     border-bottom-right-radius: 0 !important;
-    width: 100%;
-    height: 35px !important;
+    width: auto !important;
+    font-size: 16px !important;
 }
 
 .load-change {    
     width: 100%;
-    height: 35px !important;
+}
+
+.font-bold {
+    font-weight: 400 !important;
 }
 
 .custom-box {
     height: 30px; /* Adjust the height value as desired */
     background-color: #5e5e5e;
-    padding: 0px;
+    padding: 4px;
     border-radius: 25px !important;
 }
   
@@ -930,3 +943,59 @@ label {
     align-items: center;
 }
 
+/* Progress Bar Here */
+.progress-container {
+    position: relative;
+    margin-top: 20px; /* Add a margin-top of 50px to create a gap */
+    width: 100%; /* Set the width to 100% */
+}
+
+.progress {
+    padding: 0; /* Remove the default padding */
+}
+
+.progress-bar-font {
+    font-size: 10px;
+    color:#000000;
+}
+
+.hive-line-point {
+    position: absolute;
+    top: -20px;
+    font-size: 10px;
+    color: #ffffff;
+}
+
+.shive-line-point {
+    position: absolute;
+    bottom: 0px;
+    font-size: 10px;
+    color: #ffffff;
+}
+
+/* Line pointers */
+.hive-line-pointer {
+    position: absolute;
+    content: "";
+    border-left: 1px solid #818181;
+    height: 15px;
+}
+
+.shive-line-pointer {
+    position: absolute;
+    content: "";
+    border-left: 1px solid #818181;
+    height: 15px;
+}
+
+.progress-bar-success {
+    background-color: #00e065;
+}
+
+.progress-bar-warning {
+    background-color: #ffe600;
+}
+
+.progress-bar-danger {
+    background-color: #ff2600;
+}

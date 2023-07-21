@@ -34,6 +34,11 @@
 
         <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" integrity="sha512-E8QSvWZ0eCLGk4km3hxSsNmGWbLtSCSUcewDQPQWZF6pEU8GlT8a5fF32wOl1i8ftdMhssTrF/OhyGWwonTcXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+        
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>             
+        
+        
         <script src="js/main.js"></script> 
         <style>
             body {
@@ -183,7 +188,7 @@
             <div class="d-flex flex-column rounded-3 bg p-0 m-3 mt-0 card column-one-scale">
                 <div class="m-3">
                     <p class="font-family-size-medium-large font-family-size-large-color mb-2">Wallet</p>
-                    <div class="d-flex mb-2">
+                    <div class="d-flex mb-2 align-items-start">
                         <div class="input-group input-group-sm d-flex flex-nowrap load-change">
                             <span class="input-group-text" id="usymbol">@</span>
                             <input type="text" class="input form-control" id="username" placeholder="Username">
@@ -253,11 +258,11 @@
                         </span>
                     </div>
 
-                    <div class="d-flex">
+                    <div class="d-flex align-items-center">
                         <div class="input-div-change d-flex input-group input-group-sm">
-                            <input type="number" class="input form-control input-change" id="inputquantity" placeholder="Send">
+                            <input type="number" class="input form-control input-change" id="inputquantity" placeholder="Send" style="font-size: 14px;">
                             <div class="input-group-append input-group-sm">
-                                <select id="input" class="form-select form-select-lg input select-change option-value-color" style="width: initial;">
+                                <select id="input" class="form-select form-select-lg select-change option-value-color" style="border-radius: 0 25px 25px 0; width: 100%;">
                                     <option value="HIVE">HIVE</option>
                                     <option value="SWAP.HIVE">SWAP.HIVE</option>
                                 </select>
@@ -275,7 +280,7 @@
 
                     <div class="d-flex">
                         <div class="input-div-change d-flex input-group input-group-sm">
-                            <input type="number" class="input form-control input-change" id="outputquantity" placeholder="Receive" readonly>
+                            <input type="number" class="input form-control input-change" id="outputquantity" placeholder="Receive" readonly style="font-size: 14px;">
                             <div class="input-group-append input-group-sm">
                                 <select id="output" class="form-select form-select-lg input select-change option-value-color" style="width: initial;">
                                     <option value="HIVE">HIVE</option>
@@ -302,9 +307,9 @@
 
                     <div class="d-flex r-button-flex">
                         <div class="button-group">
-                            <label class="radio-label font-family-size-small-medium"><input type="radio" name="my-radio-group" value="0.0"><span>0.0%</span></label>  
-                            <label class="radio-label font-family-size-small-medium"><input type="radio" name="my-radio-group" value="0.1"><span>0.1%</span></label>                           
-                            <label class="radio-label font-family-size-small-medium"><input type="radio" name="my-radio-group" value="0.4" checked><span>0.4%</span></label>
+                            <label class="radio-label font-family-size-small-medium font-bold"><input type="radio" name="my-radio-group" value="0.0"><span>0.0%</span></label>  
+                            <label class="radio-label font-family-size-small-medium font-bold"><input type="radio" name="my-radio-group" value="0.1"><span>0.1%</span></label>                           
+                            <label class="radio-label font-family-size-small-medium font-bold"><input type="radio" name="my-radio-group" value="0.4" checked><span>0.4%</span></label>
                         </div>
                     </div>
 
@@ -330,7 +335,7 @@
                             <input class="form-check-input pointer d-none" type="radio" name="txtype" id="txtype" value="Hive Keychain" disabled>
                             <label class="form-check-label pointer d-flex justify-content-center align-items-center label-scale" for="txtype">
                               <img class="ops" src="assets/hive_keychain.png">
-                              <span class="text-nowrap font-family-size-medium">Hive Keychain</span>
+                              <span class="text-nowrap font-family-size-medium font-bold">Hive Keychain</span>
                             </label>
                         </div>                          
                           
@@ -338,7 +343,7 @@
                             <input class="form-check-input pointer d-none" type="radio" name="txtype" id="txtype1" value="Hive Auth" disabled>
                             <label class="form-check-label pointer d-flex justify-content-center label-scale" for="txtype1">
                                 <img class="ops" src="assets/hive_auth.png">
-                                <span class="text-nowrap font-family-size-medium">Hive Auth</span>
+                                <span class="text-nowrap font-family-size-medium font-bold">Hive Auth</span>
                             </label>
                         </div>
                     </div>
@@ -368,6 +373,27 @@
                     <div class="d-flex flex-column mb-0">
                         <p class="m-0 font-family-size-medium medium-text-info"><span id="hiveliquidity">0</span> <span class="details">HIVE</span></p>
                         <p class="m-0 font-family-size-medium medium-text-info"><span id="swaphiveliquidity">0</span> <span class="details">SWAP.HIVE</span></p>              
+                    </div>
+
+                    <hr>
+
+                    <div class="d-flex flex-column mb-0">
+                        <p class="font-family-size-medium">Visualizing Liquidity Details</p>
+                        <div class="progress-container">                            
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-success progress-bar-font" role="progressbar" style="width:0%">
+                                    0.38% Reward
+                                </div>
+                                <div class="progress-bar progress-bar-warning progress-bar-font" role="progressbar" style="width:0%">
+                                    0.09% Fee & 0.0% Reward
+                                </div>
+                                <div class="progress-bar progress-bar-danger progress-bar-font" role="progressbar" style="width:0%">
+                                    0.39% Fee
+                                </div>
+                            </div>
+                            <div id="hivebalance" class="hive-line-point hive-line-pointer">Hive</div>
+                            <div id="shivebalance" class="shive-line-point shive-line-pointer">Swap.Hive</div>
+                        </div>
                     </div>
 
                     <hr>

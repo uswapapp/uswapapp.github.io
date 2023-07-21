@@ -366,36 +366,8 @@ $(window).bind("load", function () {
             console.log("Error at getBalances () : ", error);
             return { HIVE: 0.0, SHIVE: 0.0, VAULT: 0.0 }
         }
-    };    
-    
-    /*
-    async function getBalances(account) {
-        try
-        {
-            const res = await hive.api.getAccountsAsync([account]);
-            if (res.length > 0) 
-            {
-                const res2 = await ssc.find("tokens", "balances", { account, symbol: { "$in": ["SWAP.HIVE", "VAULT"] } }, 1000, 0, []);
-                var swaphive = res2.find(el => el.symbol === "SWAP.HIVE");
-                var vault = res2.find(el => el.symbol === "VAULT");
-                return {
-                    HIVE: dec(parseFloat(res[0].balance.split(" ")[0])),
-                    "SWAP.HIVE": dec(parseFloat((swaphive) ? swaphive.balance : 0)),
-                    VAULT: dec(parseFloat((vault) ? vault.balance : 0))
-                }
-            } 
-            else
-            {
-                return { HIVE: 0, "SWAP.HIVE": 0, VAULT: 0 };
-            }
-        }
-        catch (error)
-        {
-            console.log("Error at getBalances() : ", error);
-        }
-    }
-    */
-
+    };   
+        
     async function getExtBridge () {
         try
         {
@@ -454,6 +426,8 @@ $(window).bind("load", function () {
                 $("#reqswaphive").text("0"); 
             }
 
+            await progressBarProcess(bridgebal);
+
             try {
                 if (hive_keychain) {
                     $("#txtype").removeAttr("disabled");
@@ -470,6 +444,54 @@ $(window).bind("load", function () {
         catch (error)
         {
             console.log("Error at refresh() : ", error);
+        }
+    };
+
+    async function progressBarProcess (bridgebal) {
+        try
+        {
+            // Get the width of the progress bar
+            const progressBar = document.querySelector(".progress");
+            const progressBarWidth = progressBar.offsetWidth;
+            console.log("progressBarWidth : ", progressBarWidth);
+
+            // Get the positions of each progress bar segment
+            const progressSuccess = document.querySelector(".progress-bar-success");
+            const progressWarning = document.querySelector(".progress-bar-warning");
+            const progressDanger = document.querySelector(".progress-bar-danger");
+
+            let totalBalance = bridgebal.HIVE + bridgebal.SHIVE;
+            let hiveBalance = bridgebal.HIVE;
+            let shiveBalance = bridgebal.SHIVE;
+
+            // Calculate the widths of each progress bar segment
+            let successWidth = (TIERONESPLIT) * 100;
+            let warningWidth = (TIERTWOSPLIT) * 100;
+            let dangerWidth = (TIERTHREESPLIT) * 100;
+
+            // Set the widths of the progress bars
+            progressSuccess.style.width = `${successWidth}%`;
+            progressWarning.style.width = `${warningWidth}%`;
+            progressDanger.style.width = `${dangerWidth}%`;
+
+            // Calculate the positions of Hive and Swap.Hive line pointers
+            const hivePosition = Math.round((hiveBalance / totalBalance) * progressBarWidth);
+            const shivePosition = Math.round((shiveBalance / totalBalance) * progressBarWidth);
+
+            console.log("hivePosition : ", hivePosition);
+            console.log("shivePosition : ", shivePosition);
+
+            // Set the left position for hive-line-point and shive-line-point
+            document.querySelector(".hive-line-point").style.left = `${hivePosition}px`;
+            document.querySelector(".shive-line-point").style.left = `${shivePosition}px`;
+
+            // Set the text of the Hive and Swap.Hive balances
+            //document.querySelector("#hivebalance").textContent = `${hiveBalance} Hive`;
+            //document.querySelector("#shivebalance").textContent = `${shiveBalance} Swap.Hive`;
+        }
+        catch (error)
+        {
+            console.log("Error at progressBarProcess() : ", error);
         }
     };
 
