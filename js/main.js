@@ -35,7 +35,7 @@ $(window).bind("load", function () {
 
     let NORMALFEE = 0.001;
     let SPECFEE = 0.004;
-    let REWARD = 0.0037;
+    let REWARD = 0.0034;
     let SECUREFEESTATUS = true;
     let SECUREFEE = 0.0005;
     let VAULTREWARD = 0.0001;
