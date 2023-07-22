@@ -29,15 +29,18 @@ $(window).bind("load", function () {
     
     let ssc;
 
-    let TIERONESPLIT = 0.15;
-    let TIERTWOSPLIT = 0.65;
-    let TIERTHREESPLIT = 0.2;
+    let TIERONESPLIT = 0.2;
+    let TIERTWOSPLIT = 0.5;
+    let TIERTHREESPLIT = 0.3;
 
     let NORMALFEE = 0.001;
     let SPECFEE = 0.004;
     let REWARD = 0.0037;
     let SECUREFEESTATUS = true;
     let SECUREFEE = 0.0005;
+    let VAULTREWARD = 0.0001;
+
+    let KSWAPDYNFEE = 0.005;
 
     let DECIMAL = 1000;
 
@@ -339,6 +342,74 @@ $(window).bind("load", function () {
     function dec(val) {
         return Math.floor(val * 1000) / 1000;
     };
+
+    async function setFeesNRewards () {
+        try
+        { 
+            let tieronefillamt = TIERONESPLIT * 100;
+            let tiertwofillamt = TIERTWOSPLIT * 100;
+            let tierthreefillamt = TIERTHREESPLIT * 100;
+
+            tieronefill.textContent = tieronefillamt + "%";
+            tiertwofill.textContent = tiertwofillamt + "%";
+            tierthreefill.textContent = tierthreefillamt + "%";
+
+            msgtieronesplit.textContent = tieronefillamt + "%";
+            msgtierthreesplit.textContent = tierthreefillamt + "%";
+
+            let kswapfeenreward = KSWAPDYNFEE * 100;
+            kswapreward.textContent = kswapfeenreward + "%";
+            kswapfee.textContent = kswapfeenreward + "%";
+
+            infotieronesplit.textContent = tieronefillamt + "%";
+
+            if(SECUREFEESTATUS == true)
+            {                
+                let msgfeebal = SECUREFEE * 100;
+                let tieronefnr = Math.floor(((REWARD + SECUREFEE + VAULTREWARD) * 100) * DECIMAL) / DECIMAL; 
+                let tiertwofnr = Math.round(((NORMALFEE - VAULTREWARD) * 100) * DECIMAL) / DECIMAL;
+                let tierthreefnr = Math.round(((SPECFEE + SECUREFEE - VAULTREWARD) * 100) * DECIMAL) / DECIMAL;
+                
+                msghivefee.textContent = msgfeebal + "%";
+                msghivereward.textContent = msgfeebal + "%";
+
+                tieronefeenreward.textContent = tieronefnr + "%";
+                tiertwofeenreward.textContent = tiertwofnr + "%";
+                tierthreefeenreward.textContent = tierthreefnr + "%";
+
+                progressbartierone.textContent = tieronefnr + "%";
+                progressbartiertwo.textContent = tiertwofnr + "%";
+                progressbartierthree.textContent = tierthreefnr + "%";
+
+                infotieronesplitreward.textContent = tieronefnr + "%";
+            }
+            else
+            {                
+                let tieronefnr = Math.floor(((REWARD + VAULTREWARD) * 100) * DECIMAL) / DECIMAL; 
+                let tiertwofnr = Math.round(((NORMALFEE - VAULTREWARD) * 100) * DECIMAL) / DECIMAL;
+                let tierthreefnr = Math.round(((SPECFEE - VAULTREWARD) * 100) * DECIMAL) / DECIMAL;
+                
+                msghivefee.textContent = "0.0%";
+                msghivereward.textContent = "0.0%";
+
+                tieronefeenreward.textContent = tieronefnr + "%";
+                tiertwofeenreward.textContent = tiertwofnr + "%";
+                tierthreefeenreward.textContent = tierthreefnr + "%";
+
+                progressbartierone.textContent = tieronefnr + "%";
+                progressbartiertwo.textContent = tiertwofnr + "%";
+                progressbartierthree.textContent = tierthreefnr + "%";
+
+                infotieronesplitreward.textContent = tieronefnr + "%";
+            }
+        }
+        catch (error)
+        {
+            console.log("Error at setFeesNRewards () : ", error);
+        }
+    };
+
+    setFeesNRewards();
 
     async function getBalances (account) {
         try

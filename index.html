@@ -138,8 +138,8 @@
             <p class="popup-msg-bar-important">Important Update</p>
             <p>To ensure the bridge liquidity during this special Hive market situation, we have implemented the following adjustments:</p>
             <ul>
-                <li>Added an additional 0.05% fee for the lowest side of the bridge if it falls below 20% of the total.</li>
-                <li>Increased the reward by 0.05% until the lowest side of the bridge reaches 15%.</li>
+                <li>Added an additional <span id="msghivefee">0.00%</span> fee for the lowest side of the bridge if it falls below <span id="msgtierthreesplit">0.00%</span> of the total.</li>
+                <li>Increased the reward by <span id="msghivereward">0.00%</span> until the lowest side of the bridge reaches <span id="msgtieronesplit">0.00%</span>.</li>
             </ul>
             <p>Please be aware of these temporary changes. Thank you for your understanding.</p>
             <a href="https://discord.com/invite/XYMrvyr" target="_blank" class="contact-msg-link">
@@ -212,16 +212,18 @@
                             </svg>
                             <span class="font-family-size-medium-large fee-info">Fee Info</span>
                         </p>
-                        <p class="m-0 font-family-size-small-medium"><span class="span-font-color"><span class="span-font-color-one">First 15% Fill</span> : <span class="medium-text-info">0.43%</span> Reward HIVE / SWAP.HIVE & <span class="medium-text-info">0.01%</span> Reward VAULT</span></p>
-                        <p class="m-0 font-family-size-small-medium"><span class="span-font-color"><span class="span-font-color-one">Next 65% Fill</span> : <span class="medium-text-info">0.1%</span> Fee HIVE / SWAP.HIVE & <span class="medium-text-info">0.01%</span> Reward VAULT</span></p> 
-                        <p class="m-0 font-family-size-small-medium"><span class="span-font-color"><span class="span-font-color-one">Last 20% Fill</span> : <span class="medium-text-info">0.45%</span> Fee HIVE / SWAP.HIVE & <span class="medium-text-info">0.01%</span> Reward VAULT</span></p>                       
+                        <p class="m-0 font-family-size-small-medium"><span class="span-font-color"><span class="span-font-color-one">First <span id="tieronefill">0%</span> Fill</span>&nbsp;&nbsp;: <span id="tieronefeenreward" class="medium-text-info">0.00%</span> Reward HIVE / SWAP.HIVE & VAULT</span></p>
+                        <p class="m-0 font-family-size-small-medium"><span class="span-font-color"><span class="span-font-color-one">Next <span id="tiertwofill">0%</span> Fill</span>&nbsp;: <span id="tiertwofeenreward" class="medium-text-info">0.00%</span> Fee HIVE / SWAP.HIVE & Reward VAULT</span></p>
+                        <p class="m-0 font-family-size-small-medium"><span class="span-font-color"><span class="span-font-color-one">Last <span id="tierthreefill">0%</span> Fill</span>&nbsp;&nbsp;: <span id="tierthreefeenreward" class="medium-text-info">0.00%</span> Fee HIVE / SWAP.HIVE & Reward VAULT</span></p>                       
                     </div>
+
+                    <hr>
 
                     <div class="mt-2 d-flex">
                         <div class="mt-0 d-flex justify-content-center">
                             <div class="d-flex flex-column box f alignclass">    
                                 <a class="link-lightv2 font-family-size-small-medium" href="https://kswap.app/" target="_blank">    
-                                    <span style="vertical-align: middle;">Use Kswap Bridge (Fee [<span class="fee-data">-0.5%</span>] to [<span class="fee-data">0.5%</span>]) for Dynamic Fees & Rewards!&nbsp;</span>    
+                                    <span style="vertical-align: middle;">Use Kswap Bridge (Fee [<span class="fee-data">-<span id="kswapreward">0.0%</span></span>] to [<span id="kswapfee" class="fee-data">0.5%</span>]) for Dynamic Fees & Rewards!&nbsp;</span>    
                                     <svg style="vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-up-right" viewBox="0 0 16 16">    
                                         <path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"/>    
                                         <path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"/>    
@@ -308,8 +310,10 @@
                     <div class="d-flex r-button-flex">
                         <div class="button-group">
                             <label class="radio-label font-family-size-small-medium font-bold"><input type="radio" name="my-radio-group" value="0.0"><span>0.0%</span></label>  
-                            <label class="radio-label font-family-size-small-medium font-bold"><input type="radio" name="my-radio-group" value="0.1"><span>0.1%</span></label>                           
+                            <label class="radio-label font-family-size-small-medium font-bold"><input type="radio" name="my-radio-group" value="0.1"><span>0.1%</span></label>
+                            <label class="radio-label font-family-size-small-medium font-bold"><input type="radio" name="my-radio-group" value="0.2"><span>0.2%</span></label>                           
                             <label class="radio-label font-family-size-small-medium font-bold"><input type="radio" name="my-radio-group" value="0.4" checked><span>0.4%</span></label>
+                            <label class="radio-label font-family-size-small-medium font-bold"><input type="radio" name="my-radio-group" value="0.5"><span>0.5%</span></label>
                         </div>
                     </div>
 
@@ -382,13 +386,13 @@
                         <div class="progress-container">                            
                             <div class="progress">
                                 <div class="progress-bar progress-bar-success progress-bar-font" role="progressbar" style="width:0%">
-                                    0.38% Reward
+                                    <span><span id="progressbartierone">0.0%</span> Reward</span>
                                 </div>
                                 <div class="progress-bar progress-bar-warning progress-bar-font" role="progressbar" style="width:0%">
-                                    0.09% Fee & 0.0% Reward
+                                    <span><span id="progressbartiertwo">0.0%</span> Fee</span>
                                 </div>
                                 <div class="progress-bar progress-bar-danger progress-bar-font" role="progressbar" style="width:0%">
-                                    0.39% Fee
+                                    <span><span id="progressbartierthree">0.0%</span> Fee</span>
                                 </div>
                             </div>
                             <div id="hivebalance" class="hive-line-point hive-line-pointer">Hive</div>
@@ -400,7 +404,7 @@
 
                     <div class="d-flex flex-column mb-0">
                         <p class="font-family-size-medium">Provide Liquidity and Earn Rewards!</p>
-                        <p class="font-family-size-small-medium liquidity">You can provide <span class="fee">15%</span> Liquidity on the lower side of the bridge to earn <span class="fee">0.37%</span> instant rewards and free swaps!</p>
+                        <p class="font-family-size-small-medium liquidity">You can provide <span id="infotieronesplit" class="fee">0.0%</span> Liquidity on the lower side of the bridge to earn <span id="infotieronesplitreward" class="fee">0.0%</span> instant rewards and free swaps!</p>
                         <p class="font-family-size-small-medium s pointer m-0"><span id="reqhive" class="qt fee">0</span> <span class="sym req-info">HIVE</span> Required</p>
                         <p class="font-family-size-small-medium s pointer m-0"><span id="reqswaphive" class="qt fee">0</span> <span class="sym req-info">SWAP.HIVE</span> Required</p> 
                         <hr>
