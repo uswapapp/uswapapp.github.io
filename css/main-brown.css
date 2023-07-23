@@ -881,7 +881,7 @@ label {
     left: 50%; /* Place the left side of the box at the middle of the page */
     transform: translate(-50%, -50%); /* Center the box horizontally and vertically */
     width: 80%; /* Adjust the width of the box as needed */
-    max-width: 400px; /* Set a maximum width for the box if desired */
+    max-width: 500px; /* Set a maximum width for the box if desired */
     padding: 20px; /* Add some padding for better appearance */
     background-color: #ffffff;
     text-align: justify;
