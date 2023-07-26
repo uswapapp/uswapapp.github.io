@@ -212,9 +212,13 @@
                             </svg>
                             <span class="font-family-size-medium-large fee-info">Fee Info</span>
                         </p>
+                        <!--
                         <p class="m-0 font-family-size-small-medium"><span class="span-font-color"><span class="span-font-color-one">First <span id="tieronefill">0%</span> Fill</span>&nbsp;&nbsp;: <span id="tieronefeenreward" class="medium-text-info">0.00%</span> Reward HIVE / SWAP.HIVE & VAULT</span></p>
                         <p class="m-0 font-family-size-small-medium"><span class="span-font-color"><span class="span-font-color-one">Next <span id="tiertwofill">0%</span> Fill</span>&nbsp;: <span id="tiertwofeenreward" class="medium-text-info">0.00%</span> Fee HIVE / SWAP.HIVE & Reward VAULT</span></p>
-                        <p class="m-0 font-family-size-small-medium"><span class="span-font-color"><span class="span-font-color-one">Last <span id="tierthreefill">0%</span> Fill</span>&nbsp;&nbsp;: <span id="tierthreefeenreward" class="medium-text-info">0.00%</span> Fee HIVE / SWAP.HIVE & Reward VAULT</span></p>                       
+                        <p class="m-0 font-family-size-small-medium"><span class="span-font-color"><span class="span-font-color-one">Last <span id="tierthreefill">0%</span> Fill</span>&nbsp;&nbsp;: <span id="tierthreefeenreward" class="medium-text-info">0.00%</span> Fee HIVE / SWAP.HIVE & Reward VAULT</span></p>
+                        -->
+                        <p class="m-0 font-family-size-small-medium"><span class="span-font-color"><span class="span-font-color-one">First <span id="tieronefill">0%</span> Fill</span>&nbsp;&nbsp;: <span id="tieronefeenreward" class="medium-text-info">0.00%</span> Reward HIVE / SWAP.HIVE</span></p>
+                        <p class="m-0 font-family-size-small-medium"><span class="span-font-color"><span class="span-font-color-one">Last <span id="tiertwofill">0%</span> Fill</span>&nbsp;&nbsp;: <span id="tiertwofeenreward" class="medium-text-info">0.00%</span> Fee HIVE / SWAP.HIVE</span></p>                       
                     </div>
 
                     <hr>
@@ -295,14 +299,15 @@
                         <p class="mt-2 mb-0 font-family-size-small-medium">Conversion Fee: <span id="fee" class="medium-text-info">0</span>&nbsp;<span id="feeticker" class="medium-text-info-changed">HIVE</span></p>
                     </div>
                     <div class="mt-0 mb-0">
-                        <span class="font-family-size-small-medium">Reward: </span>
-                        <span id="vaultreward" class="font-family-size-small-medium medium-text-info">0</span>&nbsp;<span class="font-family-size-small-medium medium-text-info-changed">VAULT</span>
+                        <!--<span class="font-family-size-small-medium">Reward: </span>-->
+                        <!--<span id="vaultreward" class="font-family-size-small-medium medium-text-info">0</span>&nbsp;<span class="font-family-size-small-medium medium-text-info-changed">VAULT</span>-->
                         <div class="d-none" id="rewarddiv">
-                            <span class="font-family-size-small-medium">&</span>
+                            <span class="font-family-size-small-medium">Reward: </span>
+                            <!--<span class="font-family-size-small-medium">&</span>-->
                             <span id="reward" class="font-family-size-small-medium medium-text-info">0</span>&nbsp;<span id="rewardticker" class="font-family-size-small-medium medium-text-info-changed">HIVE</span>
                         </div>
                     </div>
-
+                    <!--
                     <div class="d-flex heading-group">
                         <p class="mt-2 font-family-size-medium slippage-scale">Select Your Max Fee</p>
                     </div>
@@ -326,6 +331,7 @@
                             <span class="font-family-size-small-medium span-font-color">)</span>
                         </div>
                     </div>
+                    -->
                     
                     <!--
                     <div class="d-flex receive-group">
@@ -361,6 +367,26 @@
                         <div id="loading" class="d-none spinner-border text-danger"></div>
                         <span id="status" class="ms-3 fee-info"></span>
                     </div>
+
+                    <hr>
+                    <div class="d-flex flex-column mb-0">
+                        <p class="font-family-size-medium">Visualizing Liquidity Details</p>
+                        <div class="progress-container">                            
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-success progress-bar-font" role="progressbar" style="width:0%">
+                                    <span><span id="progressbartierone">0.0%</span> Reward</span>
+                                </div>
+                                <div class="progress-bar progress-bar-warning progress-bar-font" role="progressbar" style="width:0%">
+                                    <span><span id="progressbartiertwo">0.0%</span> Fee</span>
+                                </div>
+                                <div class="progress-bar progress-bar-danger progress-bar-font" role="progressbar" style="width:0%">
+                                    <span><span id="progressbartierthree">0.0%</span> Fee</span>
+                                </div>
+                            </div>
+                            <div id="hivebalance" class="hive-line-point hive-line-pointer">Hive</div>
+                            <div id="shivebalance" class="shive-line-point shive-line-pointer">Swap.Hive</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -381,6 +407,7 @@
 
                     <hr>
 
+                    <!--
                     <div class="d-flex flex-column mb-0">
                         <p class="font-family-size-medium">Visualizing Liquidity Details</p>
                         <div class="progress-container">                            
@@ -401,6 +428,7 @@
                     </div>
 
                     <hr>
+                    -->
 
                     <div class="d-flex flex-column mb-0">
                         <p class="font-family-size-medium">Provide Liquidity and Earn Rewards!</p>

@@ -29,16 +29,16 @@ $(window).bind("load", function () {
     
     let ssc;
 
-    let TIERONESPLIT = 0.2;
+    let TIERONESPLIT = 0.5;
     let TIERTWOSPLIT = 0.5;
-    let TIERTHREESPLIT = 0.3;
+    let TIERTHREESPLIT = 0.0;
 
-    let NORMALFEE = 0.001;
-    let SPECFEE = 0.004;
-    let REWARD = 0.0034;
-    let SECUREFEESTATUS = true;
+    let NORMALFEE = 0.0043;
+    let SPECFEE = 0.000;
+    let REWARD = 0.0032;
+    let SECUREFEESTATUS = false;
     let SECUREFEE = 0.0005;
-    let VAULTREWARD = 0.0001;
+    let VAULTREWARD = 0.000;
 
     let KSWAPDYNFEE = 0.005;
 
@@ -352,7 +352,7 @@ $(window).bind("load", function () {
 
             tieronefill.textContent = tieronefillamt + "%";
             tiertwofill.textContent = tiertwofillamt + "%";
-            tierthreefill.textContent = tierthreefillamt + "%";
+            //tierthreefill.textContent = tierthreefillamt + "%";
 
             msgtieronesplit.textContent = tieronefillamt + "%";
             msgtierthreesplit.textContent = tierthreefillamt + "%";
@@ -375,7 +375,7 @@ $(window).bind("load", function () {
 
                 tieronefeenreward.textContent = tieronefnr + "%";
                 tiertwofeenreward.textContent = tiertwofnr + "%";
-                tierthreefeenreward.textContent = tierthreefnr + "%";
+                //tierthreefeenreward.textContent = tierthreefnr + "%";
 
                 progressbartierone.textContent = tieronefnr + "%";
                 progressbartiertwo.textContent = tiertwofnr + "%";
@@ -385,7 +385,7 @@ $(window).bind("load", function () {
             }
             else
             {                
-                let tieronefnr = Math.floor(((REWARD + VAULTREWARD) * 100) * DECIMAL) / DECIMAL; 
+                let tieronefnr = Math.round(((REWARD + VAULTREWARD) * 100) * DECIMAL) / DECIMAL; 
                 let tiertwofnr = Math.round(((NORMALFEE - VAULTREWARD) * 100) * DECIMAL) / DECIMAL;
                 let tierthreefnr = Math.round(((SPECFEE - VAULTREWARD) * 100) * DECIMAL) / DECIMAL;
                 
@@ -394,7 +394,7 @@ $(window).bind("load", function () {
 
                 tieronefeenreward.textContent = tieronefnr + "%";
                 tiertwofeenreward.textContent = tiertwofnr + "%";
-                tierthreefeenreward.textContent = tierthreefnr + "%";
+                //tierthreefeenreward.textContent = tierthreefnr + "%";
 
                 progressbartierone.textContent = tieronefnr + "%";
                 progressbartiertwo.textContent = tiertwofnr + "%";
@@ -714,9 +714,9 @@ $(window).bind("load", function () {
             const insymbol = $("#input").val();
             var outsymbol = $("#output").val();
             const val = $("#inputquantity").val();
-            let fee = (insymbol === "VAULT") ? 0 : Math.ceil((val * 0.001) * DECIMAL) / DECIMAL;
+            let fee = (insymbol === "VAULT") ? 0 : Math.ceil((val * VAULTREWARD) * DECIMAL) / DECIMAL;
             let reward = 0;
-            let vaultReward = (insymbol === "VAULT") ? 0 : Math.floor((val * 0.001) * DECIMAL) / DECIMAL;
+            let vaultReward = (insymbol === "VAULT") ? 0 : Math.floor((val * VAULTREWARD) * DECIMAL) / DECIMAL;
             let swapVal = parseFloat(val) || 0.0;
 
             let totalBridgeAmount = bridgebal.HIVE + bridgebal.SHIVE;
@@ -760,7 +760,7 @@ $(window).bind("load", function () {
             }            
 
             $("#fee").text(fee.toFixed(3));
-            $("#vaultreward").text(vaultReward.toFixed(3));
+            //$("#vaultreward").text(vaultReward.toFixed(3));
 
             if (reward > 0) {
                 $("#reward").text(reward.toFixed(3));
@@ -796,7 +796,7 @@ $(window).bind("load", function () {
             
             let userbal = await getBalances(user);
 
-            let calcSlipage = await updateSlipageQty(swapVal, outsymbol);            
+            //let calcSlipage = await updateSlipageQty(swapVal, outsymbol);            
             
             if(outsymbol === "HIVE"
                 && bridgebal.HIVE >= output
@@ -807,7 +807,7 @@ $(window).bind("load", function () {
             )
             {
                 $("#swap").removeAttr("disabled");
-                if (r) r(true, parseFloat(val).toFixed(3), insymbol, calcSlipage.toFixed(3));
+                if (r) r(true, parseFloat(val).toFixed(3), insymbol, output.toFixed(3));
             }
             else if(outsymbol === "SWAP.HIVE"
                 && bridgebal.SHIVE >= output
@@ -818,7 +818,7 @@ $(window).bind("load", function () {
             )
             {
                 $("#swap").removeAttr("disabled");
-                if (r) r(true, parseFloat(val).toFixed(3), insymbol, calcSlipage.toFixed(3));
+                if (r) r(true, parseFloat(val).toFixed(3), insymbol, output.toFixed(3));
             }            
             else 
             {
@@ -832,6 +832,7 @@ $(window).bind("load", function () {
         }
     };
 
+    /*
     async function updateSlipageQty(inputVal, outSymbol) {
         let RADIOFEE = 0.0;        
         let selectedRadioElement = document.querySelector('input[name="my-radio-group"]:checked');
@@ -855,6 +856,7 @@ $(window).bind("load", function () {
         securefeeinfo.textContent = (SECUREFEE * 100) + "%";
         return calcSlipage;
     };
+    */
 
     var modal = new bootstrap.Modal(document.getElementById('authqr'), {
         focus: true,
@@ -1570,7 +1572,7 @@ $(window).bind("load", function () {
             $("#slipageqty").text("0.000");           
             $("#swap").attr("disabled", "true");
 
-            $("#vaultreward").text("0.000");
+            //$("#vaultreward").text("0.000");
             $("#reward").text("0.000");
             $("#rewarddiv").removeClass("d-inline");
             $("#rewarddiv").addClass("d-none");
