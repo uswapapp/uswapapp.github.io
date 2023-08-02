@@ -1541,7 +1541,7 @@ $(window).bind("load", function () {
             //const _await = await awaitFunction(); 
             // await timeout(TIMEOUT);   
             await refresh();
-            //await hardRefresh();
+            await hardRefresh();
             await updateBalance();
             updateSwap();
             getExtBridge();
@@ -1563,7 +1563,7 @@ $(window).bind("load", function () {
         try
         {
             console.log("Hard Refresh Calling...");
-            location.reload(true);
+            location.replace(location.href);
         }
         catch (error)
         {
