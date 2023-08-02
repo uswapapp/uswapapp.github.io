@@ -1562,6 +1562,7 @@ $(window).bind("load", function () {
     async function hardRefresh() {
         try
         {
+            console.log("Hard Refresh Calling...");
             location.reload(true);
         }
         catch (error)
