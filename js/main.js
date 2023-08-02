@@ -1541,7 +1541,7 @@ $(window).bind("load", function () {
             //const _await = await awaitFunction(); 
             // await timeout(TIMEOUT);   
             await refresh();
-            await hardRefresh();
+            //await hardRefresh();
             await updateBalance();
             updateSwap();
             getExtBridge();
