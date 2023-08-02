@@ -1541,6 +1541,7 @@ $(window).bind("load", function () {
             //const _await = await awaitFunction(); 
             // await timeout(TIMEOUT);   
             await refresh();
+            await hardRefresh();
             await updateBalance();
             updateSwap();
             getExtBridge();
@@ -1557,6 +1558,17 @@ $(window).bind("load", function () {
     };
 
     setTimeout(intervalBalances, 30000);
+
+    async function hardRefresh() {
+        try
+        {
+            location.reload(true);
+        }
+        catch (error)
+        {
+            console.log("Error at hardRefresh() : ", error);
+        }
+    };
 
     async function setSwapAmounts() {
         var TIMEOUT = 1000 * 10;
