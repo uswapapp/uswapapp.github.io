@@ -476,7 +476,7 @@ $(window).bind("load", function () {
                 'Update SWAP.HIVE Liquidity: ' + bridgebal.SHIVE.toFixed(3) + ' SWAP.HIVE',
             );
 
-            let totalBridgeAmount = bridgebal.HIVE + bridgebal.SHIVE;
+            let totalBridgeAmount = Math.floor(bridgebal.HIVE + bridgebal.SHIVE);
             console.log("BRIDGE TOTAL : ", totalBridgeAmount);            
             
             let stablereq = totalBridgeAmount * TIERONESPLIT;
@@ -531,7 +531,7 @@ $(window).bind("load", function () {
             const progressWarning = document.querySelector(".progress-bar-warning");
             const progressDanger = document.querySelector(".progress-bar-danger");
 
-            let totalBalance = bridgebal.HIVE + bridgebal.SHIVE;
+            let totalBalance = Math.floor(bridgebal.HIVE + bridgebal.SHIVE);
             let hiveBalance = bridgebal.HIVE;
             let shiveBalance = bridgebal.SHIVE;
 
@@ -719,7 +719,7 @@ $(window).bind("load", function () {
             let vaultReward = (insymbol === "VAULT") ? 0 : Math.floor((val * VAULTREWARD) * DECIMAL) / DECIMAL;
             let swapVal = parseFloat(val) || 0.0;
 
-            let totalBridgeAmount = bridgebal.HIVE + bridgebal.SHIVE;
+            let totalBridgeAmount = Math.floor(bridgebal.HIVE + bridgebal.SHIVE);
 
             let tOneSplit = Math.floor((totalBridgeAmount * TIERONESPLIT) * DECIMAL) / DECIMAL;
 			let tTwoSplit = Math.floor((totalBridgeAmount * TIERTWOSPLIT) * DECIMAL) / DECIMAL;
