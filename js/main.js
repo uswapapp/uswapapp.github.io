@@ -33,9 +33,9 @@ $(window).bind("load", function () {
     let TIERTWOSPLIT = 0.5;
     let TIERTHREESPLIT = 0.0;
 
-    let NORMALFEE = 0.0043;
+    let NORMALFEE = 0.004;
     let SPECFEE = 0.000;
-    let REWARD = 0.0032;
+    let REWARD = 0.003;
     let SECUREFEESTATUS = false;
     let SECUREFEE = 0.0005;
     let VAULTREWARD = 0.000;
