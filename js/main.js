@@ -30,7 +30,7 @@ $(window).bind("load", function () {
     let ssc;
 
     let TIERONESPLIT = 0.5;
-    let TIERTWOSPLIT = 1- TIERONESPLIT;
+    let TIERTWOSPLIT = 1 - TIERONESPLIT;
     let TIERTHREESPLIT = 0.0;
 
     let NORMALFEE = 0.004;
