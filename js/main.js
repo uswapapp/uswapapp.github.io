@@ -29,7 +29,7 @@ $(window).bind("load", function () {
     
     let ssc;
 
-    let TIERONESPLIT = 0.5;
+    let TIERONESPLIT = 0.35;
     let TIERTWOSPLIT = 1 - TIERONESPLIT;
     let TIERTHREESPLIT = 0.0;
 
