@@ -29,11 +29,11 @@ $(window).bind("load", function () {
     
     let ssc;
 
-    let TIERONESPLIT = 0.35;
+    let TIERONESPLIT = 0.3;
     let TIERTWOSPLIT = 1 - TIERONESPLIT;
     let TIERTHREESPLIT = 0.0;
 
-    let NORMALFEE = 0.003;
+    let NORMALFEE = 0.0025;
     let SPECFEE = 0.000;
     let REWARD = 0.0025;
     let SECUREFEESTATUS = false;
