@@ -359,7 +359,7 @@ $(window).bind("load", function () {
             msgtierthreesplit.textContent = tierthreefillamt + "%";
 
             let kswapfeeonly = Math.floor(((KSWAPDYNFEE + KSWAPMINFEE) * 100) * DECIMAL) / DECIMAL;
-	    let kswaprewardonly = Math.floor(((KSWAPDYNFEE - KSWAPMINFEE) * 100) * DECIMAL) / DECIMAL;
+	    let kswaprewardonly = Math.ceil(((KSWAPDYNFEE - KSWAPMINFEE) * 100) * DECIMAL) / DECIMAL;
             kswapreward.textContent = kswaprewardonly + "%";
             kswapfee.textContent = kswapfeeonly + "%";
 
