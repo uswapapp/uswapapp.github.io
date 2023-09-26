@@ -358,8 +358,8 @@ $(window).bind("load", function () {
             msgtieronesplit.textContent = tieronefillamt + "%";
             msgtierthreesplit.textContent = tierthreefillamt + "%";
 
-            let kswapfeeonly = (KSWAPDYNFEE + KSWAPMINFEE) * 100;
-	    let kswaprewardonly = (KSWAPDYNFEE - KSWAPMINFEE) * 100;
+            let kswapfeeonly = Math.floor(((KSWAPDYNFEE + KSWAPMINFEE) * 100) * DECIMAL) / DECIMAL;
+	    let kswaprewardonly = Math.floor(((KSWAPDYNFEE - KSWAPMINFEE) * 100) * DECIMAL) / DECIMAL;
             kswapreward.textContent = kswaprewardonly + "%";
             kswapfee.textContent = kswapfeeonly + "%";
 
