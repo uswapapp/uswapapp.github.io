@@ -41,6 +41,7 @@ $(window).bind("load", function () {
     let VAULTREWARD = 0.000;
 
     let KSWAPDYNFEE = 0.005;
+    let KSWAPMINFEE = 0.0005;
 
     let DECIMAL = 1000;
 
@@ -357,9 +358,10 @@ $(window).bind("load", function () {
             msgtieronesplit.textContent = tieronefillamt + "%";
             msgtierthreesplit.textContent = tierthreefillamt + "%";
 
-            let kswapfeenreward = KSWAPDYNFEE * 100;
-            kswapreward.textContent = kswapfeenreward + "%";
-            kswapfee.textContent = kswapfeenreward + "%";
+            let kswapfeeonly = (KSWAPDYNFEE + KSWAPMINFEE) * 100;
+	    let kswaprewardonly = (KSWAPDYNFEE - KSWAPMINFEE) * 100;
+            kswapreward.textContent = kswaprewardonly + "%";
+            kswapfee.textContent = kswapfeeonly + "%";
 
             infotieronesplit.textContent = tieronefillamt + "%";
 
