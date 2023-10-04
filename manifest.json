@@ -1,11 +1,11 @@
 {
   "background_color": "#000000",
-  "description": "Cheapest HIVE and SWAP.HIVE Bridge",
+  "description": "Revolutional HIVE and SWAP.HIVE Bridge",
   "display": "standalone",
-  "name": "USWAP",
+  "name": "KSWAP",
   "dir": "ltr",
   "orientation": "any",
-  "short_name": "USWAP",
+  "short_name": "KSWAP",
   "start_url": "index.html",
   "theme_color": "#e50000",
   "categories": [

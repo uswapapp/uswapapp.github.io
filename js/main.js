@@ -1,7 +1,19 @@
-let SWAPACCOUNT = "uswap";
+var DECIMAL = 1000;
+DECIMAL = parseInt(DECIMAL) || 0.0;
+
+var BASE_FEE = 0.001;
+var MIN_BASE_FEE = 0.0005;
+var DIFF_COEFFICIENT = 0.005;
+var HIVEPOOL = 25000;
+var SHIVEPOOL = 25000;
+const BRIDGE_USER = "uswap";
+let ssc;
+
+let COINGECKO_HIVE_URL = "https://api.coingecko.com/api/v3/simple/price?ids=hive&vs_currencies=usd";
+let COINGECKO_HBD_URL = "https://api.coingecko.com/api/v3/simple/price?ids=hive_dollar&vs_currencies=usd";
+
 
 $(window).bind("load", function () {
-    // remove unnessary parameters from url
 
     var rpc_nodes = [
         "https://api.deathwing.me",
@@ -25,26 +37,8 @@ $(window).bind("load", function () {
 		"https://api.hive-engine.com",
 		"https://api.primersion.com",
 		"https://herpc.actifit.io"
-    ];
+    ];    
     
-    let ssc;
-
-    let TIERONESPLIT = 0.25;
-    let TIERTWOSPLIT = 1 - TIERONESPLIT;
-    let TIERTHREESPLIT = 0.0;
-
-    let NORMALFEE = 0.0023;
-    let SPECFEE = 0.000;
-    let REWARD = 0.0022;
-    let SECUREFEESTATUS = false;
-    let SECUREFEE = 0.0005;
-    let VAULTREWARD = 0.000;
-
-    let KSWAPDYNFEE = 0.005;
-    let KSWAPMINFEE = 0.0005;
-
-    let DECIMAL = 1000;
-
     async function checkHiveNodeStatus(nodeUrl, statusElement) {
         try 
         {
@@ -69,7 +63,7 @@ $(window).bind("load", function () {
           statusElement.classList.add("fail");
         }
     };
-    
+      
     async function addHiveNodes() {
         try 
         {
@@ -172,9 +166,9 @@ $(window).bind("load", function () {
         {
             console.log("Error at addHiveNodes(): ", error);
         }
-    };
+    };       
 
-    async function checkEngineNodeStatus(nodeUrl, statusElement) {        
+    async function checkEngineNodeStatus(nodeUrl, statusElement) {
         try 
         {
             const response = await axios.get(nodeUrl);
@@ -296,11 +290,11 @@ $(window).bind("load", function () {
         {
             console.log("Error at addEngineNodes(): ", error);
         }
-    };    
-
+    };      
+    
     async function initializeHiveAPI() {
         var selectedEndpoint = await getSelectedEndpoint();
-        console.log("SELECTE HIVE API NODE : ", selectedEndpoint);
+        console.log("SELECT HIVE API NODE : ", selectedEndpoint);
         hive.api.setOptions({ url: selectedEndpoint });
 
         var button = document.getElementById("popup-button-hive");
@@ -310,7 +304,7 @@ $(window).bind("load", function () {
 
     async function initializeEngineAPI() {
         var selectedEngEndpoint = await getSelectedEngEndpoint();
-        console.log("SELECTE ENGINE API NODE : ", selectedEngEndpoint);
+        console.log("SELECT ENGINE API NODE : ", selectedEngEndpoint);
         ssc = new SSC(selectedEngEndpoint);
 
         var button = document.getElementById("popup-button-engine");
@@ -320,8 +314,8 @@ $(window).bind("load", function () {
 
     async function processAPIs() {
         try 
-        {             
-            await initializeHiveAPI();            
+        {              
+            await initializeHiveAPI();
             await initializeEngineAPI();            
         } 
         catch (error) 
@@ -330,604 +324,24 @@ $(window).bind("load", function () {
         }
     };
       
-    processAPIs();   
-
+    processAPIs();  
+    
     hive.config.set('alternative_api_endpoints', rpc_nodes);
 
-    window.history.replaceState({}, document.title, "/" + "");
+    window.history.replaceState({}, document.title, "/" + "");    
 
-    //const ssc = new SSC("https://engine.rishipanthee.com/");    
+    var user = null, bal = { HIVE: 0, "SWAP.HIVE": 0 }, bridgebal;
 
-    var user = null, bal = { HIVE: 0, "SWAP.HIVE": 0, VAULT: 0 }, bridgebal;
-    
     function dec(val) {
         return Math.floor(val * 1000) / 1000;
     };
 
-    async function setFeesNRewards () {
-        try
-        { 
-            let tieronefillamt = TIERONESPLIT * 100;
-            let tiertwofillamt = TIERTWOSPLIT * 100;
-            let tierthreefillamt = TIERTHREESPLIT * 100;
-
-            tieronefill.textContent = tieronefillamt + "%";
-            tiertwofill.textContent = tiertwofillamt + "%";
-            //tierthreefill.textContent = tierthreefillamt + "%";
-
-            msgtieronesplit.textContent = tieronefillamt + "%";
-            msgtierthreesplit.textContent = tierthreefillamt + "%";
-
-            let kswapfeeonly = Math.ceil(((KSWAPDYNFEE + KSWAPMINFEE) * 100) * DECIMAL) / DECIMAL;
-	    let kswaprewardonly = Math.floor(((KSWAPDYNFEE - KSWAPMINFEE) * 100) * DECIMAL) / DECIMAL;
-            kswapreward.textContent = kswaprewardonly + "%";
-            kswapfee.textContent = kswapfeeonly + "%";
-
-            infotieronesplit.textContent = tieronefillamt + "%";
-
-            if(SECUREFEESTATUS == true)
-            {                
-                let msgfeebal = SECUREFEE * 100;
-                let tieronefnr = Math.floor(((REWARD + SECUREFEE + VAULTREWARD) * 100) * DECIMAL) / DECIMAL; 
-                let tiertwofnr = Math.round(((NORMALFEE - VAULTREWARD) * 100) * DECIMAL) / DECIMAL;
-                let tierthreefnr = Math.round(((SPECFEE + SECUREFEE - VAULTREWARD) * 100) * DECIMAL) / DECIMAL;
-                
-                msghivefee.textContent = msgfeebal + "%";
-                msghivereward.textContent = msgfeebal + "%";
-
-                tieronefeenreward.textContent = tieronefnr + "%";
-                tiertwofeenreward.textContent = tiertwofnr + "%";
-                //tierthreefeenreward.textContent = tierthreefnr + "%";
-
-                progressbartierone.textContent = tieronefnr + "%";
-                progressbartiertwo.textContent = tiertwofnr + "%";
-                progressbartierthree.textContent = tierthreefnr + "%";
-
-                infotieronesplitreward.textContent = tieronefnr + "%";
-            }
-            else
-            {                
-                let tieronefnr = Math.round(((REWARD + VAULTREWARD) * 100) * DECIMAL) / DECIMAL; 
-                let tiertwofnr = Math.round(((NORMALFEE - VAULTREWARD) * 100) * DECIMAL) / DECIMAL;
-                let tierthreefnr = Math.round(((SPECFEE - VAULTREWARD) * 100) * DECIMAL) / DECIMAL;
-                
-                msghivefee.textContent = "0.0%";
-                msghivereward.textContent = "0.0%";
-
-                tieronefeenreward.textContent = tieronefnr + "%";
-                tiertwofeenreward.textContent = tiertwofnr + "%";
-                //tierthreefeenreward.textContent = tierthreefnr + "%";
-
-                progressbartierone.textContent = tieronefnr + "%";
-                progressbartiertwo.textContent = tiertwofnr + "%";
-                progressbartierthree.textContent = tierthreefnr + "%";
-
-                infotieronesplitreward.textContent = tieronefnr + "%";
-            }
-        }
-        catch (error)
-        {
-            console.log("Error at setFeesNRewards () : ", error);
-        }
-    };
-
-    setFeesNRewards();
-
-    async function getBalances (account) {
-        try
-        {
-            const res = await hive.api.getAccountsAsync([account]);
-            if(res.length > 0)
-            {
-                const res2 = await ssc.find("tokens", "balances", { account: account, symbol: { "$in": ["SWAP.HIVE", "VAULT"] } }, 1000, 0, []);
-                console.log("res2 : ", res2);
-                var swaphive = res2.find(el => el.symbol === "SWAP.HIVE");
-                var vault = res2.find(el => el.symbol === "VAULT");
-                return {
-                    HIVE: dec(parseFloat(res[0].balance.split(" ")[0])),
-                    SHIVE: dec(parseFloat((swaphive) ? swaphive.balance : 0)),
-                    VAULT: dec(parseFloat((vault) ? vault.balance : 0))
-                }
-            }
-            else
-            {
-                return { HIVE: 0.0, SHIVE: 0.0, VAULT: 0.0 }
-            }
-        }
-        catch (error)
-        {
-            console.log("Error at getBalances () : ", error);
-            return { HIVE: 0.0, SHIVE: 0.0, VAULT: 0.0 }
-        }
-    };   
-        
-    async function getExtBridge () {
-        try
-        {
-            const res = await hive.api.getAccountsAsync(['kswap']);
-            var hiveLiq = res[0].balance.split(" ")[0];
-            hiveLiq = Math.floor(hiveLiq * DECIMAL) / DECIMAL;
-
-            const res2 = await ssc.findOne("tokens", "balances", { account: 'kswap', symbol: 'SWAP.HIVE' });
-            var swaphiveLiq = parseFloat(res2.balance) || 0.0;
-            swaphiveLiq = Math.floor(swaphiveLiq * DECIMAL) / DECIMAL;
-
-            $("#hive_liq").text(hiveLiq);
-            $("#swap_liq").text(swaphiveLiq);
-            $("#bridge").removeClass("d-none");
-        }
-        catch (error)
-        {
-            console.log("Error at getExtBridge() : ", error);
-        }
-    };   
-
-    async function refresh() {
-        try
-        {
-            updateMin();
-            bridgebal = await getBalances(SWAPACCOUNT);            
-            $("#hiveliquidity").text(bridgebal.HIVE.toFixed(3));
-            $("#swaphiveliquidity").text(bridgebal.SHIVE.toFixed(3));
-            
-            console.log("");
-            console.log(
-                'Update Hive Liquidity: ' + bridgebal.HIVE.toFixed(3) + ' HIVE',
-            );
-            console.log(
-                'Update SWAP.HIVE Liquidity: ' + bridgebal.SHIVE.toFixed(3) + ' SWAP.HIVE',
-            );
-
-            let totalBridgeAmount = Math.floor(bridgebal.HIVE + bridgebal.SHIVE);
-            console.log("BRIDGE TOTAL : ", totalBridgeAmount);            
-            
-            let stablereq = totalBridgeAmount * TIERONESPLIT;
-
-            if (bridgebal.HIVE < stablereq) {
-                let requiredHive = Math.floor((stablereq - bridgebal.HIVE) * 1000) / 1000;
-                $("#reqhive").text(requiredHive.toFixed(3));
-            }
-            else {
-                $("#reqhive").text("0"); 
-            }
-
-            if (bridgebal.SHIVE < stablereq) {
-                let requiredSwapHive = Math.floor((stablereq - bridgebal.SHIVE) * 1000) / 1000;
-                $("#reqswaphive").text(requiredSwapHive.toFixed(3));
-            }
-            else {
-                $("#reqswaphive").text("0"); 
-            }
-
-            await progressBarProcess(bridgebal);
-
-            try {
-                if (hive_keychain) {
-                    $("#txtype").removeAttr("disabled");
-                    $("#txtype").attr("checked", true);
-                }
-            }
-            catch (e) {
-                $("#txtype").attr("disabled", true);
-                $("#txtype").removeAttr("checked");
-            }
-
-            $("input[name=txtype]").change();
-        }
-        catch (error)
-        {
-            console.log("Error at refresh() : ", error);
-        }
-    };
-
-    async function progressBarProcess (bridgebal) {
-        try
-        {
-            // Get the width of the progress bar
-            const progressBar = document.querySelector(".progress");
-            const progressBarWidth = progressBar.offsetWidth;
-            console.log("progressBarWidth : ", progressBarWidth);
-
-            // Get the positions of each progress bar segment
-            const progressSuccess = document.querySelector(".progress-bar-success");
-            const progressWarning = document.querySelector(".progress-bar-warning");
-            const progressDanger = document.querySelector(".progress-bar-danger");
-
-            let totalBalance = Math.floor(bridgebal.HIVE + bridgebal.SHIVE);
-            let hiveBalance = bridgebal.HIVE;
-            let shiveBalance = bridgebal.SHIVE;
-
-            // Calculate the widths of each progress bar segment
-            let successWidth = (TIERONESPLIT) * 100;
-            let warningWidth = (TIERTWOSPLIT) * 100;
-            let dangerWidth = (TIERTHREESPLIT) * 100;
-
-            // Set the widths of the progress bars
-            progressSuccess.style.width = `${successWidth}%`;
-            progressWarning.style.width = `${warningWidth}%`;
-            progressDanger.style.width = `${dangerWidth}%`;
-
-            // Calculate the positions of Hive and Swap.Hive line pointers
-            const hivePosition = Math.round((hiveBalance / totalBalance) * progressBarWidth);
-            const shivePosition = Math.round((shiveBalance / totalBalance) * progressBarWidth);
-
-            console.log("hivePosition : ", hivePosition);
-            console.log("shivePosition : ", shivePosition);
-
-            // Set the left position for hive-line-point and shive-line-point
-            document.querySelector(".hive-line-point").style.left = `${hivePosition}px`;
-            document.querySelector(".shive-line-point").style.left = `${shivePosition}px`;
-
-            // Set the text of the Hive and Swap.Hive balances
-            //document.querySelector("#hivebalance").textContent = `${hiveBalance} Hive`;
-            //document.querySelector("#shivebalance").textContent = `${shiveBalance} Swap.Hive`;
-        }
-        catch (error)
-        {
-            console.log("Error at progressBarProcess() : ", error);
-        }
-    };
-
-    async function processCalcFeeNReward (tOneSplit, tTwoSplit, hiveQty, BRIDGEFILLED) {
-        let calcResult = [];
-        try
-        {
-            let SPECIFICFEE = 0.0;
-            let SWAPREWARD = 0.0;
-            if(SECUREFEESTATUS == true)
-            {
-                SPECIFICFEE = SPECFEE + SECUREFEE;
-                console.log("SPECIFICFEE : ", SPECIFICFEE);
-                SWAPREWARD = REWARD + SECUREFEE;
-                console.log("SWAPREWARD : ", SWAPREWARD);
-            }
-            else
-            {
-                SPECIFICFEE = SPECFEE;
-                SWAPREWARD = REWARD;
-            }
-            
-            if(tOneSplit > BRIDGEFILLED)
-            {
-                let tOneSplitQty = Math.floor((tOneSplit - BRIDGEFILLED) * DECIMAL) / DECIMAL;
-                console.log("tOneSplitQty : ", tOneSplitQty);
-    
-                if(hiveQty > tOneSplitQty)
-                {
-                    let addiHiveQty = hiveQty - tOneSplitQty;
-                    console.log("addiHiveQty : ", addiHiveQty);
-    
-                    if(addiHiveQty > tTwoSplit)
-                    {
-                        let specHiveQty = Math.floor((hiveQty - (tOneSplitQty + tTwoSplit)) * DECIMAL) / DECIMAL;
-                        console.log("specHiveQty : ", specHiveQty);
-                        let addiHiveFee = Math.ceil((tTwoSplit * NORMALFEE) * DECIMAL) / DECIMAL;                    
-                        let specHiveFee = Math.ceil((specHiveQty * SPECIFICFEE) * DECIMAL) / DECIMAL;
-                        let hiveFee = addiHiveFee + specHiveFee;
-                        let hiveReward = Math.floor(((hiveQty - addiHiveQty) * swapReward) * DECIMAL) / DECIMAL;
-                        console.log("hiveFee : ", hiveFee, "&& hiveReward : ", hiveReward);
-                        var ddata = {
-                            hivefee: hiveFee,
-                            hivereward: hiveReward
-                        };
-                        calcResult.push(ddata);
-                    }
-                    else
-                    {
-                        let addiHiveFee = Math.ceil((addiHiveQty * NORMALFEE) * DECIMAL) / DECIMAL;
-                        let hiveReward = Math.floor(((hiveQty - addiHiveQty) * SWAPREWARD) * DECIMAL) / DECIMAL;
-                        console.log("addiHiveFee : ", addiHiveFee, "&& hiveReward : ", hiveReward);
-                        var ddata = {
-                            hivefee: addiHiveFee,
-                            hivereward: hiveReward
-                        };
-                        calcResult.push(ddata);
-                    }
-                }
-                else
-                {
-                    let hiveReward = Math.floor((hiveQty * SWAPREWARD) * DECIMAL) / DECIMAL;
-                    console.log("Hive Fee : 0.00 & Hive Reward : ", hiveReward);
-                    var ddata = {
-                        hivefee: 0.0,
-                        hivereward: hiveReward
-                    };
-                    calcResult.push(ddata);
-                }
-            }
-            else
-            {
-                let tOnetTwoSplit = tOneSplit + tTwoSplit;
-                if(tOnetTwoSplit > BRIDGEFILLED)
-                {
-                    let tOnetTwoSplitQty = Math.floor((tOnetTwoSplit - BRIDGEFILLED) * DECIMAL) / DECIMAL;
-                    console.log("tOnetTwoSplitQty : ", tOnetTwoSplitQty);
-    
-                    if(hiveQty > tOnetTwoSplitQty)
-                    {
-                        let specHiveQty = Math.floor((hiveQty - tOnetTwoSplitQty) * DECIMAL) / DECIMAL;
-                        console.log("specHiveQty : ", specHiveQty);
-                        let addiHiveFee = Math.ceil((tOnetTwoSplitQty * NORMALFEE) * DECIMAL) / DECIMAL;
-                        console.log("addiHiveFee : ", addiHiveFee);
-                        let specHiveFee = Math.ceil((specHiveQty * SPECIFICFEE) * DECIMAL) / DECIMAL;
-                        console.log("specHiveFee : ", specHiveFee);
-                        let hiveFee = addiHiveFee + specHiveFee;
-                        console.log("hiveFee : ", hiveFee);
-                        var ddata = {
-                            hivefee: hiveFee,
-                            hivereward: 0.0
-                        };
-                        calcResult.push(ddata);
-                    }
-                    else
-                    {
-                        let hiveFee = Math.ceil((hiveQty * NORMALFEE) * DECIMAL) / DECIMAL;
-                        console.log("hiveFee : ", hiveFee);
-                        var ddata = {
-                            hivefee: hiveFee,
-                            hivereward: 0.0
-                        };
-                        calcResult.push(ddata);
-                    }
-                }
-                else
-                {
-                    let hiveFee = Math.ceil((hiveQty * SPECIFICFEE) * DECIMAL) / DECIMAL;
-                    console.log("hiveFee : ", hiveFee);
-                    var ddata = {
-                        hivefee: hiveFee,
-                        hivereward: 0.0
-                    };
-                    calcResult.push(ddata);
-                }
-            }
-            return calcResult;
-        }
-        catch (error)
-        {
-            console.log("Error at processCalc() : ", error);
-            return calcResult;
-        }
-    };
-
-    $("#refresh").click(async function () {
-        $(this).attr("disabled", true);
-        await refresh();
-        $(this).removeAttr("disabled");
-    });
-
-    async function updateMin() {
-        const insymbol = $("#input").val();
-        if(insymbol === "HIVE" || insymbol === "SWAP.HIVE")
-        {
-            $("#minimum").text(`1 ${insymbol}`);
-        }
-        if(insymbol == "VAULT")
-        {
-            $("#minimum").text(`10 ${insymbol}`);
-        }
-    }
-
-    async function updateSwap(r) {
-        try 
-        {
-            updateMin();
-            bridgebal = await getBalances(SWAPACCOUNT);
-            const insymbol = $("#input").val();
-            var outsymbol = $("#output").val();
-            const val = $("#inputquantity").val();
-            let fee = (insymbol === "VAULT") ? 0 : Math.ceil((val * VAULTREWARD) * DECIMAL) / DECIMAL;
-            let reward = 0;
-            let vaultReward = (insymbol === "VAULT") ? 0 : Math.floor((val * VAULTREWARD) * DECIMAL) / DECIMAL;
-            let swapVal = parseFloat(val) || 0.0;
-
-            let totalBridgeAmount = Math.floor(bridgebal.HIVE + bridgebal.SHIVE);
-
-            let tOneSplit = Math.floor((totalBridgeAmount * TIERONESPLIT) * DECIMAL) / DECIMAL;
-			let tTwoSplit = Math.floor((totalBridgeAmount * TIERTWOSPLIT) * DECIMAL) / DECIMAL;
-			let tThreeSplit = Math.floor((totalBridgeAmount * TIERTHREESPLIT) * DECIMAL) / DECIMAL;
-
-            console.log("BRIDGE tOneSplit : ", tOneSplit);
-			console.log("BRIDGE tTwoSplit : ", tTwoSplit);
-			console.log("BRIDGE tThreeSplit : ", tThreeSplit);
-
-            let actualQty = 0.0;
-            if(insymbol == "HIVE")
-            {
-                let bridgeHive = parseFloat(bridgebal.HIVE) || 0.0;                             
-                actualQty = Math.floor((bridgeHive) * DECIMAL) / DECIMAL;
-            }
-
-            if(insymbol == "SWAP.HIVE")
-            {
-                let bridgeSHive = parseFloat(bridgebal.SHIVE) || 0.0;
-                actualQty = Math.floor((bridgeSHive) * DECIMAL) / DECIMAL;
-            }
-
-			console.log("BRIDGE", insymbol, "FILLED : ", actualQty);
-			console.log("BRIDGE IN : ", swapVal);
-
-            let getCalcNReward = await processCalcFeeNReward(tOneSplit, tTwoSplit, swapVal, actualQty);
-            console.log("getCalcNReward : ", getCalcNReward);
-            if(getCalcNReward.length > 0)
-			{
-                fee = parseFloat(getCalcNReward[0].hivefee) || 0.0;
-                reward = parseFloat(getCalcNReward[0].hivereward) || 0.0;
-            }
-            else
-            {
-                fee = 0.0;
-                reward = 0.0;
-                val = 0.0;
-            }            
-
-            $("#fee").text(fee.toFixed(3));
-            //$("#vaultreward").text(vaultReward.toFixed(3));
-
-            if (reward > 0) {
-                $("#reward").text(reward.toFixed(3));
-                $("#rewarddiv").removeClass("d-none");
-                $("#rewarddiv").addClass("d-inline");
-            } 
-            else {
-                $("#rewarddiv").removeClass("d-inline");
-                $("#rewarddiv").addClass("d-none");
-            }
-
-            $("#feeticker").text(insymbol);
-            //$("rewardticker").text(insymbol);
-            rewardticker.textContent = outsymbol;
-
-            const output = (insymbol === "VAULT") ? (val / 10) : (val - fee);
-
-            $("#outputquantity").val(output.toFixed(3));
-
-            if (insymbol === outsymbol) {
-                var othersymbol;
-
-                $("#output option").each(function () {
-                    if ($(this).val() !== insymbol) {
-                        othersymbol = $(this).val();
-                        return
-                    }
-                });
-
-                outsymbol = othersymbol;
-                $("#output").val(othersymbol);
-            }            
-            
-            let userbal = await getBalances(user);
-
-            //let calcSlipage = await updateSlipageQty(swapVal, outsymbol);            
-            
-            if(outsymbol === "HIVE"
-                && bridgebal.HIVE >= output
-                && userbal.SHIVE >= val
-                && insymbol !== outsymbol
-                && val >= 1
-                && insymbol === "SWAP.HIVE"
-            )
-            {
-                $("#swap").removeAttr("disabled");
-                if (r) r(true, parseFloat(val).toFixed(3), insymbol, output.toFixed(3));
-            }
-            else if(outsymbol === "SWAP.HIVE"
-                && bridgebal.SHIVE >= output
-                && userbal.HIVE >= val
-                && insymbol !== outsymbol
-                && val >= 1
-                && insymbol === "HIVE"
-            )
-            {
-                $("#swap").removeAttr("disabled");
-                if (r) r(true, parseFloat(val).toFixed(3), insymbol, output.toFixed(3));
-            }            
-            else 
-            {
-                $("#swap").attr("disabled", "true");
-                if (r) r(false);
-            }
-        } 
-        catch (error) 
-        { 
-            console.log("Error at updateSwap () : ", error); 
-        }
-    };
-
-    /*
-    async function updateSlipageQty(inputVal, outSymbol) {
-        let RADIOFEE = 0.0;        
-        let selectedRadioElement = document.querySelector('input[name="my-radio-group"]:checked');
-        let selectedRadioVal = selectedRadioElement ? parseFloat(selectedRadioElement.value) : 0;        
-        RADIOFEE = selectedRadioVal / 100;
-        if(SECUREFEESTATUS == true)
-        {
-            RADIOFEE = RADIOFEE + SECUREFEE;
-            $("#securefeestatus").removeClass("d-none");
-            $("#securefeestatus").addClass("secure-fee-info");
-        }
-        else
-        {
-            $("#securefeestatus").removeClass("secure-fee-info");
-            $("#securefeestatus").addClass("d-none");
-        }
-        let calcSlipage = Math.floor((inputVal - (inputVal * RADIOFEE)) * DECIMAL) / DECIMAL;
-        let slipageQty = document.getElementById('slipageqty');
-        slipageQty.textContent = Math.floor((calcSlipage) * DECIMAL) / DECIMAL;
-        minreceivesymbol.textContent = outSymbol;
-        securefeeinfo.textContent = (SECUREFEE * 100) + "%";
-        return calcSlipage;
-    };
-    */
-
-    var modal = new bootstrap.Modal(document.getElementById('authqr'), {
-        focus: true,
-        backdrop: 'static',
-    });
-
-    $(".s").click(function () {
-        $("#input").val($(this).find(".sym").text());
-        $("#inputquantity").val($(this).find(".qt").text());
-        updateSwap();
-    });
-
-    $("#inputquantity").keyup(() => { updateSwap(); });
-
-    $("#input, #output").change(() => { updateSwap(); });
-
-    $("[name='my-radio-group']").change(() => { 
-        updateSwap();
-    });
-
-    $("#reverse").click(function () {
-        var input = $("#input").val();
-        $("#input").val($("#output").val());
-        $("#output").val(input);
-        updateSwap();
-    });
-
-    async function updateBalance() {
-        try
-        {
-            bal = await getBalances(user);
-            console.log("bal HERE : ", bal);
-            console.log("");
-            console.log(
-                `Update Hive Balance: @${user} ` + bal.HIVE.toFixed(3) + ' HIVE',
-            );
-
-            console.log(
-                `Update SWAP.HIVE Balance: @${user} ` + bal.SHIVE.toFixed(3) + ' SWAP.HIVE',
-            );
-
-            $("#hive").text(bal.HIVE.toFixed(3));
-            $("#swaphive").text(bal.SHIVE.toFixed(3));
-            $("#vault").text(bal.VAULT.toFixed(3));
-        }
-        catch (error)
-        {
-            console.log("Error at updateBalance() : ", error);
-        }
-    };
-
-    $("#checkbalance").click(async function () {
-        user = $.trim($("#username").val().toLowerCase());
-
-        if (user.length >= 3) {
-            $(this).attr("disabled", "true");
-            await updateBalance();
-            updateSwap();
-            $(this).removeAttr("disabled");
-            localStorage['user'] = user;
-        }
-    });
-
-    $(document).ready(function() {
-        var css1 = document.querySelector("link[href='css/main-black.css']");
-        var css2 = document.querySelector("link[href='css/main-brown.css']");
+    $(document).ready(function() { 
+        var css1 = document.querySelector("link[href='css/main-dark.css']");
+        var css2 = document.querySelector("link[href='css/main-light.css']");
         
         // Check local storage for saved theme
-        if (localStorage.getItem("theme") === "brown") {
+        if (localStorage.getItem("theme") === "light") {
           css1.disabled = true;
           css2.disabled = false;
         } else {
@@ -937,28 +351,27 @@ $(window).bind("load", function () {
         
         $("#logo").show();
         
-        $("#changeThemeBlack").click(function() {
+        $("#changeThemeDark").click(function() {
           css1.disabled = false;
           css2.disabled = true;
-          localStorage.setItem("theme", "black"); // Save selected theme to local storage
+          localStorage.setItem("theme", "dark"); // Save selected theme to local storage
           $("body").fadeOut(400, function() {
             $("body").fadeIn(400);
           });
         });
       
-        $("#changeThemeBrown").click(function() {
+        $("#changeThemeLight").click(function() {
           css1.disabled = true;
           css2.disabled = false;
-          localStorage.setItem("theme", "brown"); // Save selected theme to local storage
+          localStorage.setItem("theme", "light"); // Save selected theme to local storage
           $("body").fadeOut(400, function() {
             $("body").fadeIn(400);
           });
         });
-    
+
         loadHiveNode();
-        loadEngineNode();
-        loadSecureFeeMsg();
-    }); 
+        loadEngineNode();               
+    });
 
     async function loadHiveNode() {
         try 
@@ -1164,36 +577,431 @@ $(window).bind("load", function () {
         {
             console.log("Error at loadEngineNode(): ", error);
         }
+    };  
+
+    async function getBalances(account) {
+        try
+        {
+            const res = await hive.api.getAccountsAsync([account]);
+            if (res.length > 0) 
+            {
+                const res2 = await ssc.find("tokens", "balances", { account, symbol: { "$in": ["SWAP.HIVE"] } }, 1000, 0, []);
+                var swaphive = res2.find(el => el.symbol === "SWAP.HIVE");
+                return {
+                    HIVE: dec(parseFloat(res[0].balance.split(" ")[0])),
+                    "SWAP.HIVE": dec(parseFloat((swaphive) ? swaphive.balance : 0))
+                }
+
+            } 
+            else 
+            {
+                return { HIVE: 0, "SWAP.HIVE": 0 };
+            }   
+        }
+        catch (error)
+        {
+            console.log("Error at getBalances() : ", error);
+        }
     };
-    
-    async function loadSecureFeeMsg() {
+
+    async function getExtBridge () {
+        try
+        {
+            const res = await hive.api.getAccountsAsync(['uswap']);
+            var hiveLiq = res[0].balance.split(" ")[0];
+            hiveLiq = Math.floor(hiveLiq * DECIMAL) / DECIMAL;
+
+            const res2 = await ssc.findOne("tokens", "balances", { account: 'uswap', symbol: 'SWAP.HIVE' });
+            var swaphiveLiq = parseFloat(res2.balance) || 0.0;
+            swaphiveLiq = Math.floor(swaphiveLiq * DECIMAL) / DECIMAL;
+
+            $("#hive_liq").text(hiveLiq);
+            $("#swap_liq").text(swaphiveLiq);
+            $("#bridge").removeClass("d-none");
+        }
+        catch (error)
+        {
+            console.log("Error at getExtBridge() : ", error);
+        }
+    };   
+
+    async function refresh() {
+        try
+        {
+            updateMin();
+            bridgebal = await getBalances("uswap");
+            $("#hiveliquidity").text(bridgebal.HIVE.toFixed(3));
+            $("#swaphiveliquidity").text(bridgebal["SWAP.HIVE"].toFixed(3));
+            console.log("");
+            console.log(
+                'Update Hive Liquidity: ' + bridgebal.HIVE.toFixed(3) + ' HIVE',
+            );
+
+            console.log(
+                'Update SWAP.HIVE Liquidity: ' + bridgebal["SWAP.HIVE"].toFixed(3) + ' SWAP.HIVE',
+            );        
+
+            try 
+            {
+                if (hive_keychain) 
+                {
+                    $("#txtype").removeAttr("disabled");
+                    $("#txtype").attr("checked", true);
+                }
+            }
+            catch (e) 
+            {
+                $("#txtype").attr("disabled", true);
+                $("#txtype").removeAttr("checked");
+            }
+            $("input[name=txtype]").change();
+        }
+        catch (error)
+        {
+            console.log("Error at refresh() : ", error);
+        }
+    };
+
+    $("#refresh").click(async function () {
+        $(this).attr("disabled", true);
+        await refresh();
+        $(this).removeAttr("disabled");
+    });
+
+    function updateMin() {
+        const insymbol = $("#input").val();
+        $("#minimum").text(`1 ${insymbol}`);
+    }
+
+    async function updateSwap(r) {
         try 
         {
-            if (SECUREFEESTATUS) {
-                var popUpMsgBar = document.querySelector(".popup-msg-bar");
-                popUpMsgBar.style.display = "block";
-            }            
+            updateMin();
+            const insymbol = $("#input").val();
+            var outsymbol = $("#output").val();
+            const val = $("#inputquantity").val();
+            var inputVal = parseFloat(val) || 0.0;
+
+            var hBalance = await calcHiveAmount();
+            var shBalance = await calcSwapHiveAmount();
+
+            if(hBalance > 0)
+            {
+                HIVEPOOL = hBalance;
+            }
+            if(shBalance > 0)
+            {
+                SHIVEPOOL = shBalance;
+            }
+            
+            var expResult = 0.0;
+            if(insymbol == "HIVE")
+            {
+                var diff = ((inputVal * 0.5 + HIVEPOOL) / (SHIVEPOOL + HIVEPOOL)) - 0.5;
+                var adjusted_base_fee = Math.max( BASE_FEE * (1 - 2 * Math.abs(diff)), MIN_BASE_FEE );
+                var price = 1 - (2 * diff * DIFF_COEFFICIENT);
+                expResult = (inputVal * price) * (1 - adjusted_base_fee);
+                expResult = Math.floor(expResult * DECIMAL) / DECIMAL;                
+            }
+            if(insymbol == "SWAP.HIVE")
+            {
+                var diff = ((inputVal * 0.5 + SHIVEPOOL) / (SHIVEPOOL + HIVEPOOL)) - 0.5;
+                var adjusted_base_fee = Math.max( BASE_FEE * (1 - 2 * Math.abs(diff)), MIN_BASE_FEE );
+                var price = 1 - (2 * diff * DIFF_COEFFICIENT);
+                expResult = (inputVal * price) * (1 - adjusted_base_fee);
+                expResult = Math.floor(expResult * DECIMAL) / DECIMAL;
+            }
+
+            const output = expResult;
+
+            var outVal = $("#outputquantity").val();
+            var outputVal = parseFloat(outVal) || 0.0;
+            if(outputVal != expResult)
+            {
+                expResult = outputVal;
+            }
+
+            if (insymbol === outsymbol) {
+                var othersymbol;
+
+                $("#output option").each(function () {
+                    if ($(this).val() !== insymbol) {
+                        othersymbol = $(this).val();
+                        return
+                    }
+                });
+
+                outsymbol = othersymbol;
+                $("#output").val(othersymbol);
+            }
+
+            const slipageQty = document.getElementById('slipageqty').textContent;
+            var minExpectVal = parseFloat(slipageQty) || 0.0;
+            if(minExpectVal > 0.0)
+            {
+                if (bridgebal[outsymbol] >= output
+                    && bal[insymbol] >= val
+                    && insymbol !== outsymbol
+                    && val >= 1) {
+                    $("#swap").removeAttr("disabled");
+                    if (r) r(true, parseFloat(val).toFixed(3), insymbol, minExpectVal.toFixed(3));
+                } 
+                else {
+                    $("#swap").attr("disabled", "true");
+                    if (r) r(false);
+                }
+            }
+        } 
+        catch (error) 
+        { 
+            console.log("Error at updateSwap() : ", error); 
+        }
+    }
+
+    var modal = new bootstrap.Modal(document.getElementById('authqr'), {
+        focus: true,
+        backdrop: 'static',
+    });
+
+    async function setOutPut() {
+        try
+        {
+            const insymbol = $("#input").val();
+            var outsymbol = $("#output").val();
+            const val = $("#inputquantity").val();
+            var inputVal = parseFloat(val) || 0.0;
+            var expResult = 0.0;
+
+            const slipageQty = document.getElementById('slipageqty');
+            const selectedRadioElement = document.querySelector('input[name="my-radio-group"]:checked');
+            const selectedRadioVal = selectedRadioElement ? parseFloat(selectedRadioElement.value) : 0;
+
+            if(inputVal > 0.0)
+            {
+                var hBalance = await calcHiveAmount();
+                var shBalance = await calcSwapHiveAmount();
+                if(hBalance > 0)
+                {
+                    HIVEPOOL = hBalance;
+                }
+                if(shBalance > 0)
+                {
+                    SHIVEPOOL = shBalance;
+                }               
+                
+                if(insymbol == "HIVE")
+                {
+                    var diff = ((inputVal * 0.5 + HIVEPOOL) / (SHIVEPOOL + HIVEPOOL)) - 0.5;
+                    var adjusted_base_fee = Math.max( BASE_FEE * (1 - 2 * Math.abs(diff)), MIN_BASE_FEE );
+                    var price = 1 - (2 * diff * DIFF_COEFFICIENT);
+                    expResult = (inputVal * price) * (1 - adjusted_base_fee);
+                    expResult = Math.floor(expResult * DECIMAL) / DECIMAL;
+                }
+                if(insymbol == "SWAP.HIVE")
+                {
+                    var diff = ((inputVal * 0.5 + SHIVEPOOL) / (SHIVEPOOL + HIVEPOOL)) - 0.5;
+                    var adjusted_base_fee = Math.max( BASE_FEE * (1 - 2 * Math.abs(diff)), MIN_BASE_FEE );
+                    var price = 1 - (2 * diff * DIFF_COEFFICIENT);
+                    expResult = (inputVal * price) * (1 - adjusted_base_fee);
+                    expResult = Math.floor(expResult * DECIMAL) / DECIMAL; 
+                }
+
+                $("#outputquantity").val(expResult.toFixed(3));                
+                slipageQty.textContent = Math.floor((expResult * (1 - (selectedRadioVal / 100))) * DECIMAL) / DECIMAL;
+                await expectedFeeCalc(inputVal, expResult); 
+            }
+            else
+            {
+                $("#outputquantity").val(expResult.toFixed(3));
+                var expFee = 0.0;
+                $("#expectedfee").text(expFee.toFixed(3));
+                $("#expectedper").text(expFee.toFixed(3));
+                slipageQty.textContent = Math.floor((expResult * (1 - (selectedRadioVal / 100))) * DECIMAL) / DECIMAL;
+                slipageQty.textContent = expResult.toFixed(3);
+            }
+        }
+        catch (error)
+        {
+            console.log("setOutPut Error : ", error);
+            $("#outputquantity").val();
+        }
+    }
+
+    async function expectedFeeCalc(inputVal, expResult) 
+    {
+        try
+        {
+            var expFee = Math.ceil((inputVal - expResult) * DECIMAL) / DECIMAL;
+            $("#expectedfee").text(expFee);
+            await expectedFeePercentage(inputVal, expFee);
+        }
+        catch (error)
+        {
+            console.log("expectedFeeCalc Error : ", error);
+        }
+    }
+
+    async function expectedFeePercentage(inputVal, feeVal)
+    {
+        try
+        {
+            var expFee = Math.ceil((feeVal / inputVal * 100) * DECIMAL) / DECIMAL;
+            $("#expectedper").text(expFee);
+        }
+        catch (error)
+        {
+            console.log("expectedFeePercentage Error : ", error);
+        }
+    }
+
+    $(".s").click(function () {
+        $("#input").val($(this).find(".sym").text());
+        $("#inputquantity").val($(this).find(".qt").text());
+        setOutPut();
+        updateSwap();
+    });
+
+    /*
+    let debounceTimeoutKeyup;
+    
+    $("#inputquantity").keyup(() => {
+        clearTimeout(debounceTimeoutKeyup);
+        debounceTimeoutKeyup = setTimeout(() => {  
+            console.log("HERE UP");           
+            updateSwap();
+            setOutPut();
+        }, 500); // Adjust the delay duration (in milliseconds) as needed
+    });
+    */
+
+    let debounceTimeoutInput;
+    let latestInputValue = null;
+
+    $("#inputquantity").on("input", () => {
+        clearTimeout(debounceTimeoutInput);
+        debounceTimeoutInput = setTimeout(() => {                    
+            updateSwap();
+            setOutPut();
+            if (latestInputValue !== null) 
+            {
+                updateSlipageQtyClick(latestInputValue);
+                updateOptionValuesClick(latestInputValue);
+            }
+        }, 500); // Adjust the delay duration (in milliseconds) as needed
+    });
+
+    $("#hive").click(async () => {   
+        latestInputValue = "HIVE";     
+        await updateInputClick("HIVE");
+    });
+
+    $("#swaphive").click(async () => { 
+        latestInputValue = "SWAP.HIVE";       
+        await updateInputClick("SWAP.HIVE");
+    });
+
+    async function updateInputClick(selectedValue) {
+        try 
+        {
+            const input = document.getElementById('inputquantity');
+            const inputElement = document.getElementById("input");
+            const feetickerElement = document.getElementById("minreceivesymbol");
+            inputElement.value = selectedValue;
+            feetickerElement.textContent = selectedValue === "HIVE" ? "SWAP.HIVE" : "HIVE"; 
+            var inputVal = parseFloat(input.value) || 0;
+    
+            latestInputValue = selectedValue;
+    
+            await updateSlipageQtyClick(inputVal);
+            await updateOptionValuesClick(selectedValue); 
         } 
         catch (error) 
         {
-            console.log("Error at loadSecureFeeMsg(): ", error);
+            console.log("Error at updateInputClick(): ", error);
+        }            
+    };
+    
+    async function updateSlipageQtyClick(inputVal) {
+        try 
+        {
+            const output = document.getElementById('outputquantity');
+            const slipageQty = document.getElementById('slipageqty');
+            const selectedRadioElement = document.querySelector('input[name="my-radio-group"]:checked');
+            const selectedRadioVal = selectedRadioElement ? parseFloat(selectedRadioElement.value) : 0;
+            const selectedSymbol = latestInputValue; // Use the latest input value        
+            let calcOut = await calcOutput(inputVal, selectedSymbol);
+            output.value = Math.floor((calcOut) * DECIMAL) / DECIMAL;
+    
+            if (selectedRadioElement) {
+                calcOut *= (1 - (selectedRadioVal / 100));
+            }                           
+            slipageQty.textContent = Math.floor((calcOut) * DECIMAL) / DECIMAL;
+        } 
+        catch (error) 
+        {
+            console.log("Error at updateSlipageQtyClick(): ", error);
         }
-    };    
+    };
+    
+    async function updateOptionValuesClick(inputSymbol) { 
+        try 
+        {                      
+            const outputElement = document.getElementById("output");
+            if (inputSymbol === 'HIVE') {
+                outputElement.value = 'SWAP.HIVE';
+            } else if (inputSymbol === 'SWAP.HIVE') {
+                outputElement.value = 'HIVE';
+            }
+        } 
+        catch (error) 
+        {
+            console.log("Error at updateOptionValuesClick(): ", error);
+        }
+    };   
 
-    $(window).scroll(function() {
-        var scrollHeight = $(document).height() - $(window).height();
-        if ($(this).scrollTop() >= scrollHeight - $('.bottom-bar').outerHeight()) {
-          $('.bottom-bar').addClass('fixed');
-        } else {
-          $('.bottom-bar').removeClass('fixed');
+    $("#input, #output").change(() => { updateSwap(); setOutPut(); });
+
+    $("#reverse").click(function () {
+        //var input = $("#input").val();
+        //$("#input").val($("#output").val());
+        //$("#output").val(input);
+        updateSwap();
+    });
+
+    async function updateBalance() {
+        bal = await getBalances(user);
+        console.log("");
+        console.log(
+            `Update Hive Balance: @${user} ` + bal.HIVE.toFixed(3) + ' HIVE',
+        );
+
+        console.log(
+            `Update SWAP.HIVE Balance: @${user} ` + bal["SWAP.HIVE"].toFixed(3) + ' SWAP.HIVE',
+        );
+
+        $("#hive").text(bal.HIVE.toFixed(3));
+        $("#swaphive").text(bal["SWAP.HIVE"].toFixed(3));
+        var baseFee = BASE_FEE * 100;
+        //$("#basefeedisplay").text(baseFee);        
+    }
+
+    $("#checkbalance").click(async function () {
+        user = $.trim($("#username").val().toLowerCase());
+
+        if (user.length >= 3) {
+            $(this).attr("disabled", "true");
+            await updateBalance();
+            updateSwap();
+            $(this).removeAttr("disabled");
+            localStorage['user'] = user;
         }
-    });           
+    });
 
     if (localStorage['user']) {
         $("#username").val(localStorage['user']);
         user = localStorage['user'];
         updateBalance();
-    };
+    }
 
     // HAS implementation
     const HAS_SERVER = "wss://hive-auth.arcange.eu";
@@ -1246,9 +1054,11 @@ $(window).bind("load", function () {
         $("#status").text("Please Wait...");
         await refresh();
         await updateBalance();
+        var memoMsg = $("#slipageqty").val();
+        console.log("memoMsg : ", memoMsg);
 
-        updateSwap(function (canSwap, amount, currency, memo) {
-            if (canSwap) {
+        updateSwap(function (canSwap, amount, currency, memoMsg) {
+            if (canSwap) {                
                 const txtype = $("input[type='radio'][name='txtype']:checked").val();
                 $("#swap").attr("disabled", "true");
                 $("#loading").addClass("d-none");
@@ -1258,23 +1068,23 @@ $(window).bind("load", function () {
                     if (currency !== "HIVE") {
                         hive_keychain.requestSendToken(
                             user,
-                            SWAPACCOUNT,
+                            "uswap",
                             amount,
-                            memo,
+                            memoMsg,
                             currency,
                             async function (res) {
                                 if (res.success === true) {
                                     $("#status").text("Swaping Done Successfully!");
                                     $("#status").addClass("text-success");
                                     await updateBalance();
-                                    updateSwap();
+                                    //updateSwap();
 
                                     //Added Here
                                     await setSwapAmounts();
                                 } 
                                 else {
                                     $("#status").text("Transaction failed, Please try again.");
-                                    updateSwap();
+                                    //updateSwap();
                                 }
 
                                 console.log(res);
@@ -1284,23 +1094,23 @@ $(window).bind("load", function () {
                     else {
                         hive_keychain.requestTransfer(
                             user,
-                            SWAPACCOUNT,
+                            "uswap",
                             amount,
-                            memo,
+                            memoMsg,
                             currency,
                             async function (res) {
                                 if (res.success === true) {
                                     $("#status").text("Swaping Done Successfully!");
                                     $("#status").addClass("text-success");
                                     await updateBalance();
-                                    updateSwap();
+                                    //updateSwap();
 
                                     //Added Here
                                     await setSwapAmounts();
                                 } 
                                 else {
                                     $("#status").text("Transaction failed, Please try again.");
-                                    updateSwap();
+                                    //updateSwap();
                                 }
 
                                 console.log(res);
@@ -1359,9 +1169,9 @@ $(window).bind("load", function () {
                                                 "contractAction": "transfer",
                                                 "contractPayload": {
                                                     "symbol": currency,
-                                                    "to": SWAPACCOUNT,
+                                                    "to": "uswap",
                                                     "quantity": amount,
-                                                    "memo": memo
+                                                    "memo": memoMsg
                                                 }
                                             });
 
@@ -1391,9 +1201,9 @@ $(window).bind("load", function () {
                                                     "transfer",
                                                     {
                                                         from: user,
-                                                        to: SWAPACCOUNT,
+                                                        to: 'uswap',
                                                         amount: `${amount} HIVE`,
-                                                        memo,
+                                                        memoMsg,
                                                     }
                                                 ]
 
@@ -1490,11 +1300,6 @@ $(window).bind("load", function () {
         });
     });
 
-    $("#closepopupmsg").click (async function () {        
-        var popupMsgBar = document.querySelector(".popup-msg-bar");
-        popupMsgBar.style.display = "none";
-    });
-
     $("input[name=txtype]").change(function () {
         const el = $("input[type='radio'][name='txtype']");
         el.each(function () {
@@ -1509,6 +1314,14 @@ $(window).bind("load", function () {
 
     $(".refreshHistory").click(function () {
         historyReader();
+    });
+
+    $(".refreshHiveMarket").click(function () {
+        getHiveMarket();
+    });
+
+    $(".refreshTokenMarket").click(function () {
+        getTokenMarket();
     });
 
     // update every 15 seconds
@@ -1537,28 +1350,30 @@ $(window).bind("load", function () {
 
     const intervalBalances = async function () {
         var TIMEOUT = 1000 * 10;
-        try {
+        try 
+        {
             console.log("");
             console.warn("Here Refreshing");
             //const _await = await awaitFunction(); 
             // await timeout(TIMEOUT);   
-            await refresh();           
+            await refresh();
             await updateBalance();
-            updateSwap();
-            getExtBridge();
+            //updateSwap();
+            //getExtBridge();
             historyReader();
             console.log("");
             console.warn("Refresh ended");
-            // setting timeout for 30 secs
-            setTimeout(intervalBalances, 30000);
+            // setting timeout for 60 secs
+            setTimeout(intervalBalances, 60000);
         }
-        catch (error) {
+        catch (error) 
+        {
             console.log("Error @ Refreshing : ", error);
-            setTimeout(intervalBalances, 30000);
+            setTimeout(intervalBalances, 60000);
         }
     };
 
-    setTimeout(intervalBalances, 30000);
+    setTimeout(intervalBalances, 60000);
 
     async function setSwapAmounts() {
         var TIMEOUT = 1000 * 10;
@@ -1568,53 +1383,211 @@ $(window).bind("load", function () {
             console.log("Restting to Zero");
             $("#inputquantity").val("0.000");
             $("#outputquantity").val("0.000");
+
+            const slipageQty = document.getElementById('slipageqty');
+            slipageQty.textContent = "0.000";
+
+            const radioGroup = document.getElementsByName('my-radio-group');
+            radioGroup.forEach(radio => {
+                radio.checked = false;
+            });
+
+            $("#expectedfee").val("0.000");
+            $("#expectedfee").text("0.000");
+            $("#expectedper").val("0.000");
+            $("#expectedper").text("0.000");
             $("#status").text("");
             $("#status").removeClass("text-success");
-            $("#fee").text("0.000"); 
-            $("#slipageqty").text("0.000");           
             $("#swap").attr("disabled", "true");
-
-            //$("#vaultreward").text("0.000");
-            $("#reward").text("0.000");
-            $("#rewarddiv").removeClass("d-inline");
-            $("#rewarddiv").addClass("d-none");
-            $("#securefeestatus").removeClass("secure-fee-info");
-            $("#securefeestatus").addClass("d-none");
         }
-        catch (error) {
+        catch (error) 
+        {
             console.log("setSwapAmounts : ", error);
         }
     };
+
+    async function changeMinOutput() {
+        try 
+        {
+            // Get references to the input and output elements
+            const input = document.getElementById('inputquantity');
+            const output = document.getElementById('outputquantity');
+            const radioGroup = document.getElementsByName('my-radio-group');
+            const slipageQty = document.getElementById('slipageqty');
+            const inputElement = document.getElementById("input");
+            const outputElement = document.getElementById("output");
+            const feetickerElement = document.getElementById("minreceivesymbol");
+            const reverseButton = document.getElementById('reverse');
     
-    refresh();
-    getExtBridge();
+            const hiveSpan = document.getElementById('hive');
+            const swaphiveSpan = document.getElementById('swaphive');
+    
+            // Function to update the input element and recalculate output and slippage quantities
+            async function updateInputs(selectedValue) {
+                inputElement.value = selectedValue;
+                feetickerElement.textContent = selectedValue === "HIVE" ? "SWAP.HIVE" : "HIVE";                
+                await updateSlipageQty();
+                await updateOptionValues();                
+            }
+    
+            hiveSpan.addEventListener('click', async() => {                
+                await updateInputs("HIVE");
+            });
+    
+            swaphiveSpan.addEventListener('click', async() => {
+                await updateInputs("SWAP.HIVE");
+            });
+    
+            // Add event listeners to the input and radio group elements
+            input.addEventListener('input', async() => {
+                await updateSlipageQty();
+            });
+
+            // Add event listener to the output element to update slipageQty
+            output.addEventListener("change", async () => {
+                slipageQty.textContent = Math.floor((output.value) * DECIMAL) / DECIMAL;
+            });
+    
+            radioGroup.forEach(radio => {
+                radio.addEventListener('change', async() => {
+                    await updateSlipageQty();
+                });
+            });
+    
+            // Add event listener to the input element to update feetickerElement
+            inputElement.addEventListener("change", async () => {                
+                await updateInputs(inputElement.value);
+            });            
+    
+            reverseButton.addEventListener('click', async() => {
+                await updateInputs(inputElement.value === "HIVE" ? "SWAP.HIVE" : "HIVE");
+            });
+
+            async function updateOptionValues() {
+                // update the output select element based on the input select value                
+                if (inputElement.value === 'HIVE') {
+                    outputElement.value = 'SWAP.HIVE';
+                } else if (inputElement.value === 'SWAP.HIVE') {
+                    outputElement.value = 'HIVE';
+                }
+            };
+    
+            async function updateSlipageQty() {
+                const inputVal = parseFloat(input.value) || 0;
+                const selectedRadioElement = document.querySelector('input[name="my-radio-group"]:checked');
+                const selectedRadioVal = selectedRadioElement ? parseFloat(selectedRadioElement.value) : 0;
+                const selectedSymbol = inputElement.value;
+                
+                let calcOut = await calcOutput(inputVal, selectedSymbol);
+                output.value = Math.floor((calcOut) * DECIMAL) / DECIMAL;
+    
+                if (selectedRadioElement) {
+                    calcOut *= (1 - (selectedRadioVal / 100));
+                }                           
+                slipageQty.textContent = Math.floor((calcOut) * DECIMAL) / DECIMAL;
+            }; 
+        }
+        catch (error) 
+        {
+            console.log("changeMinOutput : ", error);
+        }
+    };   
+
+    async function calcOutput(inputVal, selectedSymbol)
+    {
+        var calcVal = 0.000;
+        try
+        {                       
+            inputVal = parseFloat(inputVal) || 0.0;
+            var expResult = 0.000;
+
+            if(inputVal > 0.0)
+            {
+                var hBalance = await calcHiveAmount();
+                var shBalance = await calcSwapHiveAmount();
+                if(hBalance > 0)
+                {
+                    HIVEPOOL = hBalance;
+                }
+                if(shBalance > 0)
+                {
+                    SHIVEPOOL = shBalance;
+                }               
+                
+                if(selectedSymbol == "HIVE")
+                {
+                    var diff = ((inputVal * 0.5 + HIVEPOOL) / (SHIVEPOOL + HIVEPOOL)) - 0.5;
+                    var adjusted_base_fee = Math.max( BASE_FEE * (1 - 2 * Math.abs(diff)), MIN_BASE_FEE );
+                    var price = 1 - (2 * diff * DIFF_COEFFICIENT);
+                    expResult = (inputVal * price) * (1 - adjusted_base_fee);
+                    expResult = Math.floor(expResult * DECIMAL) / DECIMAL;
+                }
+                if(selectedSymbol == "SWAP.HIVE")
+                {
+                    var diff = ((inputVal * 0.5 + SHIVEPOOL) / (SHIVEPOOL + HIVEPOOL)) - 0.5;
+                    var adjusted_base_fee = Math.max( BASE_FEE * (1 - 2 * Math.abs(diff)), MIN_BASE_FEE );
+                    var price = 1 - (2 * diff * DIFF_COEFFICIENT);
+                    expResult = (inputVal * price) * (1 - adjusted_base_fee);
+                    expResult = Math.floor(expResult * DECIMAL) / DECIMAL; 
+                }               
+            }
+            calcVal = expResult;
+            return calcVal;
+        }
+        catch (error)
+        {
+            console.log("Error at calcOutput() : ", error);
+            return calcVal;
+        }
+    };
 
     //End of refresh
+
+    const calcHiveAmount = async () => {
+        var hiveBalance = 0.0;
+        try
+        {
+            let hiveData = await hive.api.callAsync('condenser_api.get_accounts', [[BRIDGE_USER]]);
+            if(hiveData.length > 0)
+            {        
+                hiveBalance = parseFloat(hiveData[0].balance.replace("HIVE", "").trim()) || 0.0;
+            }
+            return hiveBalance;
+        }
+        catch(error)
+        {
+            console.log("Error at calcHiveAmount() : ", error);
+            return hiveBalance;
+        }
+    }
+    
+    const calcSwapHiveAmount = async () => {
+        var swapHiveBalance = 0.0;
+        try
+        {
+            let swapHiveData = await ssc.findOne('tokens', 'balances', {'account': BRIDGE_USER, 'symbol': 'SWAP.HIVE'});
+            if(swapHiveData != null)
+            {        
+                swapHiveBalance = parseFloat(swapHiveData.balance) || 0.0;
+                swapHiveBalance = Math.floor(swapHiveBalance * DECIMAL) / DECIMAL;
+                swapHiveBalance = parseFloat(swapHiveData.balance) || 0.0;            
+            }
+            return swapHiveBalance;
+        }
+        catch(error)
+        {
+            console.log("Error at calcSwapHiveAmount() : ", error);
+            return swapHiveBalance;
+        }
+    }
+
+    refresh();
+    //getExtBridge();
+    changeMinOutput();
+
+    getTokenMarket();
+    getHiveMarket();
 });
-
-async function getSelectedEndpoint() {
-    var endpoint = await localStorage.getItem("selectedEndpoint");
-    if (endpoint) 
-    {
-      return endpoint;
-    } 
-    else 
-    {
-      return "https://anyx.io";
-    }
-};
-
-async function getSelectedEngEndpoint() {
-    var endpoint = await localStorage.getItem("selectedEngEndpoint");
-    if (endpoint) 
-    {
-      return endpoint;
-    } 
-    else 
-    {
-      return "https://engine.rishipanthee.com";
-    }
-};
 
 const historyReader = async () => {
     try {
@@ -1631,11 +1604,11 @@ const historyReader = async () => {
             historyFinal.forEach((item, index) => {
                 time = new Date(item.time).toLocaleString();
                 let tr = $("<tr></tr>");
-                tr.append(`<td><a class="link-info" target="_blank" href="https://peakd.com/@${item.to}">@${item.to}</a></td>`);
+                tr.append(`<td><a class="history-link-info" target="_blank" href="https://peakd.com/@${item.to}">@${item.to}</a></td>`);
                 tr.append(`<td>${item.amount}</td>`);
                 tr.append(`<td>${item.type}</td>`);
                 tr.append(`<td>${time}</td>`);
-                tr.append(`<td><a class="link-info" target="_blank" href="${item.type === 'Hive' ? 'https://hiveblocks.com/tx/' : 'https://he.dtools.dev/tx/'}${item.trx}">
+                tr.append(`<td><a class="history-link-info" target="_blank" href="${item.type === 'Hive' ? 'https://hiveblocks.com/tx/' : 'https://he.dtools.dev/tx/'}${item.trx}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-link-45deg" viewBox="0 0 16 16">
                         <path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z"/>
                         <path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243L6.586 4.672z"/>
@@ -1785,7 +1758,7 @@ const processHistory = async () => {
 const getHistory = async () => {
     var trxArray = [];
     try {
-        var resultData = await hive.api.getAccountHistoryAsync(SWAPACCOUNT, -1, 50);
+        var resultData = await hive.api.getAccountHistoryAsync("uswap", -1, 50);
         if (resultData.length > 0) {
             resultData.forEach(function (tx) {
                 var op = tx[1].op;
@@ -1795,7 +1768,7 @@ const getHistory = async () => {
                 var trx_id = tx[1].trx_id;
 
                 if (op_type == "transfer") {
-                    if (op_value.from == SWAPACCOUNT && op_value.to != "uswap.app") {
+                    if (op_value.from == "uswap" && op_value.to != "uswap.app") {
                         var trxTo = op_value.to;
                         var trxAmount = parseFloat(op_value.amount.replace("HIVE", "").trim());
                         var type = "Hive";
@@ -1855,3 +1828,103 @@ const setTimeStamp = async (time) => {
 };
 
 historyReader();
+
+async function getSelectedEndpoint() {
+    var endpoint = await localStorage.getItem("selectedEndpoint");
+    if (endpoint) 
+    {
+      return endpoint;
+    } 
+    else 
+    {
+      return "https://anyx.io";
+    }
+};
+
+async function getSelectedEngEndpoint() {
+    var endpoint = await localStorage.getItem("selectedEngEndpoint");
+    if (endpoint) 
+    {
+      return endpoint;
+    } 
+    else 
+    {
+      return "https://engine.rishipanthee.com";
+    }
+};
+
+const getHiveMarket = async () => {
+    try
+    {
+        let hivedata = await axios.get(COINGECKO_HIVE_URL);              
+        let hivePrice = parseFloat(hivedata.data.hive.usd);
+        let hbddata = await axios.get(COINGECKO_HBD_URL);                
+        let hbdPrice = parseFloat(hbddata.data.hive_dollar.usd);
+
+        $("#hiveusdprice").text("$"+hivePrice.toFixed(3));        
+        $("#hbdusdprice").text("$"+hbdPrice.toFixed(3)); 
+    }
+    catch (error)
+    {
+        console.log("Error at getHiveMarket() : ", error);
+    }
+};
+
+const getTokenMarket = async () => {
+    try
+    {        
+        let hivedata = await axios.get(COINGECKO_HIVE_URL);              
+        let hivePrice = parseFloat(hivedata.data.hive.usd);
+
+        let marketInfo = await getTokenMarketInfo(["VAULT", "UPME", "WINEX", "HELIOS"]);
+        console.log("marketInfo : ", marketInfo);
+
+        let vault_price = 0.0, upme_price = 0.0, winex_price = 0.0, helios_price = 0.0;
+        if(marketInfo.length > 0)
+        {           
+            if(marketInfo[0].symbol == "VAULT")
+            {
+                vault_price = parseFloat(marketInfo[0].lastPrice * hivePrice) || 0.0;
+                console.log("vault_price : ", vault_price);
+            }
+            if(marketInfo[1].symbol == "WINEX")
+            {
+                winex_price = parseFloat(marketInfo[1].lastPrice * hivePrice) || 0.0;
+                console.log("winex_price : ", winex_price);
+            }
+            if(marketInfo[2].symbol == "HELIOS")
+            {
+                helios_price = parseFloat(marketInfo[2].lastPrice * hivePrice) || 0.0;
+                console.log("helios_price : ", helios_price);
+            }
+            if(marketInfo[3].symbol == "UPME")
+            {
+                upme_price = parseFloat(marketInfo[3].lastPrice * hivePrice) || 0.0;
+                console.log("upme_price : ", upme_price);
+            }
+        }
+       
+        $("#vaultusdprice").text("$"+vault_price.toFixed(3));        
+        $("#upmeusdprice").text("$"+upme_price.toFixed(3));
+        $("#winexusdprice").text("$"+winex_price.toFixed(3));        
+        $("#heliosusdprice").text("$"+helios_price.toFixed(3));
+    }
+    catch (error)
+    {
+        console.log("Error at getTokenMarket() : ", error);
+    }  
+};
+
+const getTokenMarketInfo = async (symbols) => {
+    var marketJson = [];
+    try
+    {        
+        marketJson = await ssc.find("market", "metrics", { symbol: { "$in": [...symbols] } }, 1000, 0, []);            
+        return marketJson;
+    }
+    catch (error)
+    {
+        console.log("Error at getTokenMarketInfo() : ", error);
+        return marketJson;
+    }
+};
