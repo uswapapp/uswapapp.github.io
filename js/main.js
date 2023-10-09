@@ -3,7 +3,7 @@ DECIMAL = parseInt(DECIMAL) || 0.0;
 
 var BASE_FEE = 0.001;
 var MIN_BASE_FEE = 0.0005;
-var DIFF_COEFFICIENT = 0.005;
+var DIFF_COEFFICIENT = 0.007;
 var HIVEPOOL = 25000;
 var SHIVEPOOL = 25000;
 const BRIDGE_USER = "uswap";
