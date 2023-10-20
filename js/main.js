@@ -1,5 +1,4 @@
-var DECIMAL = 1000;
-DECIMAL = parseInt(DECIMAL) || 0.0;
+let DECIMAL = parseInt(1000) || 0.0;
 
 var BASE_FEE = 0.001;
 var MIN_BASE_FEE = 0.0005;
@@ -1858,15 +1857,52 @@ const getHiveMarket = async () => {
     {
         let hivedata = await axios.get(COINGECKO_HIVE_URL);              
         let hivePrice = parseFloat(hivedata.data.hive.usd);
-        let hbddata = await axios.get(COINGECKO_HBD_URL);                
-        let hbdPrice = parseFloat(hbddata.data.hive_dollar.usd);
+        //let hbddata = await axios.get(COINGECKO_HBD_URL);                
+        //let hbdPrice = parseFloat(hbddata.data.hive_dollar.usd);
 
+        let hbdPrice = await getHBDMarketPrice(hivePrice);
         $("#hiveusdprice").text("$"+hivePrice.toFixed(3));        
         $("#hbdusdprice").text("$"+hbdPrice.toFixed(3)); 
     }
     catch (error)
     {
         console.log("Error at getHiveMarket() : ", error);
+    }
+};
+
+async function callGetMarketTicker() {
+    return new Promise((resolve, reject) => {
+        hive.api.getTicker((err, result) => {
+            if (err) 
+            {
+                reject(err);
+            } 
+            else 
+            {
+                resolve(result);
+            }
+        });
+    });
+};
+
+const getHBDMarketPrice = async (hivePrice) => {
+    let hbdPrice = 0.0;
+    try
+    {
+        const response = await callGetMarketTicker();
+        let bidPrice = parseFloat(response.highest_bid) || 0.0;
+        let askPrice = parseFloat(response.lowest_ask) || 0.0;
+        let latestPrice = parseFloat(response.latest) || 0.0;
+        let avgPrice = Math.floor(((bidPrice + askPrice + latestPrice) / 3) * DECIMAL) / DECIMAL;
+        hbdPrice = Math.floor((hivePrice / avgPrice) * DECIMAL) / DECIMAL; 
+        console.log("hivePrice: ", hivePrice);
+        console.log("hbdPrice: ", hbdPrice);
+        return hbdPrice;
+    }
+    catch (error)
+    {
+        console.log("Error at getHBDMarketPrice() : ", error);
+        return hbdPrice;
     }
 };
 
