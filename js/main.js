@@ -1892,7 +1892,7 @@ const getHBDMarketPrice = async (hivePrice) => {
         const response = await callGetMarketTicker();
         let bidPrice = parseFloat(response.highest_bid) || 0.0;
         let askPrice = parseFloat(response.lowest_ask) || 0.0;        
-        let avgPrice = Math.floor(((bidPrice + askPric) / 2) * DECIMAL) / DECIMAL;
+        let avgPrice = Math.floor(((bidPrice + askPrice) / 2) * DECIMAL) / DECIMAL;
         hbdPrice = Math.floor((hivePrice / avgPrice) * DECIMAL) / DECIMAL; 
         console.log("hivePrice: ", hivePrice);
         console.log("hbdPrice: ", hbdPrice);
