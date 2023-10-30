@@ -916,3 +916,12 @@ svg.svg-light-color:hover path {
   fill: #ffffff;
   transition: fill 0.3s ease;
 }
+
+.fee-info-hive {
+  padding-left: 5px;
+  padding-bottom: 0px;
+}
+
+.fee-separator {
+  padding-bottom: 10px;
+}

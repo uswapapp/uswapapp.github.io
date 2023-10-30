@@ -103,6 +103,9 @@
                         <div class="tb-div-two">
                             <table class="my-table">
                                 <tr>
+                                    <span class="font-family-size-small-medium fee-info-hive">HIVE => SWAP.HIVE :</span>
+                                </tr>
+                                <tr>
                                     <td>
                                         <p class="m-0 fee font-family-size-small-medium">
                                             <span class="fee font-family-size-small-medium fee-font-color">-0.65%</span> Min Fee
@@ -110,7 +113,32 @@
                                     </td>
                                     <td>
                                         <p class="m-0 fee font-family-size-small-medium">
-                                            <span class="font-family-size-small-medium fee-font-color fee">0.10%</span> Base Fee
+                                            <span class="font-family-size-small-medium fee-font-color fee">-0.275%</span> Mid Fee
+                                        </p>
+                                    </td>
+                                    <td>
+                                        <p class="m-0 fee font-family-size-small-medium">
+                                            <span class="font-family-size-small-medium fee-font-color fee">0.10%</span> Max Fee
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="fee-separator"></div>
+                        <div class="tb-div-two">
+                            <table class="my-table">
+                                <tr>
+                                    <span class="font-family-size-small-medium fee-info-hive">SWAP.HIVE => HIVE :</span>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <p class="m-0 fee font-family-size-small-medium">
+                                            <span class="fee font-family-size-small-medium fee-font-color">0.00%</span> Min Fee
+                                        </p>
+                                    </td>
+                                    <td>
+                                        <p class="m-0 fee font-family-size-small-medium">
+                                            <span class="font-family-size-small-medium fee-font-color fee">0.375%</span> Mid Fee
                                         </p>
                                     </td>
                                     <td>
@@ -121,8 +149,8 @@
                                 </tr>
                             </table>
                         </div>                        
-                    </div>
-
+                    </div> 
+                    
                     <hr>
 
                     <div class="d-flex flex-column mb-3">
@@ -148,42 +176,6 @@
                                 </svg>
                             </a>
                         </div>
-                    </div>
-
-                    <hr>
-
-                    <div class="mb-3">
-                        <div class="d-flex align-items-center mb-2">
-                            <p class="font-family-size-medium-large m-0">HIVE Market Info</p>
-                            <button type="button" class="refreshHiveMarket btn-sm btn-danger ms-3 rounded-pill font-family-size-small">Refresh</button>
-                        </div>
-                        <div class="tb-div-three font-family-size-medium text-info">
-                            <table class="my-table-hive">
-                                <tr>
-                                    <td>
-                                        <p class="mb-0">
-                                            <span class="details">
-                                                <a href="https://wallet.hive.blog/market" target="_blank" class="price-info">HIVE <img id="logo-token" src="assets/icons/hive-72x72.png"> Market Price</a>
-                                            </span>
-                                        </p>  
-                                    </td>
-                                    <td>                                    
-                                        <p class="mb-0"><span id="hiveusdprice">$0</span></p>          
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <p class="mb-0">
-                                            <span class="details"><a href="https://wallet.hive.blog/market" target="_blank" class="price-info">HBD <img id="logo-token" src="assets/icons/hive-72x72.png"> Market Price</a>
-                                            </span>
-                                        </p>  
-                                    </td>
-                                    <td>                                    
-                                        <p class="mb-0"><span id="hbdusdprice">$0</span></p>          
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>                        
                     </div>
                 </div>
             </div>
@@ -338,11 +330,47 @@
                             </div>                                 
                         </div>
                         -->   
-                    </div>
+                    </div>                    
 
                     <hr>
 
-                    <div class="mb-3">
+                    <div class="mb-0">
+                        <div class="d-flex align-items-center mb-2">
+                            <p class="font-family-size-medium-large m-0">HIVE Market Info</p>
+                            <button type="button" class="refreshHiveMarket btn-sm btn-danger ms-3 rounded-pill font-family-size-small">Refresh</button>
+                        </div>
+                        <div class="tb-div-three font-family-size-medium text-info">
+                            <table class="my-table-hive">
+                                <tr>
+                                    <td>
+                                        <p class="mb-0">
+                                            <span class="details">
+                                                <a href="https://wallet.hive.blog/market" target="_blank" class="price-info">HIVE <img id="logo-token" src="assets/icons/hive-72x72.png"> Market Price</a>
+                                            </span>
+                                        </p>  
+                                    </td>
+                                    <td>                                    
+                                        <p class="mb-0"><span id="hiveusdprice">$0</span></p>          
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <p class="mb-0">
+                                            <span class="details"><a href="https://wallet.hive.blog/market" target="_blank" class="price-info">HBD <img id="logo-token" src="assets/icons/hive-72x72.png"> Market Price</a>
+                                            </span>
+                                        </p>  
+                                    </td>
+                                    <td>                                    
+                                        <p class="mb-0"><span id="hbdusdprice">$0</span></p>          
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>                        
+                    </div>
+
+                    <!--                   
+
+                    <div class="mb-0">
                         <div class="d-flex align-items-center mb-2">
                             <p class="font-family-size-medium-large m-0">Token Market Info</p>
                             <button type="button" class="refreshTokenMarket btn-sm btn-danger ms-3 rounded-pill font-family-size-small">Refresh</button>
@@ -402,7 +430,7 @@
                             </table>
                         </div>                        
                     </div>
-                    
+                    -->                    
                 </div>
             </div>
         </div>
