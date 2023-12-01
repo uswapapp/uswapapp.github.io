@@ -32,11 +32,14 @@ $(window).bind("load", function () {
     ];
 
     var he_rpc_nodes = [
-        "https://engine.rishipanthee.com", 
-		"https://ha.herpc.dtools.dev", 
-		"https://api.hive-engine.com",
-		"https://api.primersion.com",
-		"https://herpc.actifit.io"
+        "https://api.primersion.com",	
+		"https://api2.hive-engine.com/rpc",	
+		"https://engine.rishipanthee.com/",
+		"https://engine.beeswap.tools",				
+		"https://ha.herpc.dtools.dev/",			 
+		"https://api.hive-engine.com/rpc",
+		"https://herpc.actifit.io",
+		"https://herpc.dtools.dev"
     ];    
     
     async function checkHiveNodeStatus(nodeUrl, statusElement) {
