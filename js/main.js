@@ -1,8 +1,8 @@
 let DECIMAL = parseInt(1000) || 0.0;
 
-var BASE_FEE = 0.001;
-var MIN_BASE_FEE = 0.0005;
-var DIFF_COEFFICIENT = 0.0055;
+let BASE_FEE = 0.001;
+let MIN_BASE_FEE = 0.0005;
+let DIFF_COEFFICIENT = 0.0055;
 let BASE_PRICE_HIVE_TO_SHIVE = 1.000;
 var HIVEPOOL = 39000;
 var SHIVEPOOL = 39000;
@@ -12,8 +12,22 @@ let ssc;
 let COINGECKO_HIVE_URL = "https://api.coingecko.com/api/v3/simple/price?ids=hive&vs_currencies=usd";
 let COINGECKO_HBD_URL = "https://api.coingecko.com/api/v3/simple/price?ids=hive_dollar&vs_currencies=usd";
 
+let USWAPFEEJSON = "https://fee.uswap.app/fee.json";
 
-$(window).bind("load", function () {
+$(window).bind("load", async function  () {
+
+    let uswapData = await getUswapFeeInfo();
+    BASE_FEE = parseFloat(uswapData.BASE_FEE) || 0.0;
+    MIN_BASE_FEE = parseFloat(uswapData.MIN_BASE_FEE) || 0.0;
+    DIFF_COEFFICIENT = parseFloat(uswapData.DIFF_COEFFICIENT) || 0.0;
+    BASE_PRICE_HIVE_TO_SHIVE = parseFloat(uswapData.BASE_PRICE_HIVE_TO_SHIVE) || 0.0;
+
+    console.log("==================== FEE INFO ====================");
+    console.log("BASE_FEE : ", BASE_FEE);
+    console.log("MIN_BASE_FEE : ", MIN_BASE_FEE);
+    console.log("DIFF_COEFFICIENT : ", DIFF_COEFFICIENT);
+    console.log("BASE_PRICE_HIVE_TO_SHIVE : ", BASE_PRICE_HIVE_TO_SHIVE);
+    console.log("==================================================");
 
     var rpc_nodes = [
         "https://api.deathwing.me",
@@ -1589,7 +1603,7 @@ $(window).bind("load", function () {
     changeMinOutput();
 
     getTokenMarket();
-    getHiveMarket();
+    getHiveMarket();    
 });
 
 const historyReader = async () => {
@@ -1965,5 +1979,24 @@ const getTokenMarketInfo = async (symbols) => {
     {
         console.log("Error at getTokenMarketInfo() : ", error);
         return marketJson;
+    }
+};
+
+const getUswapFeeInfo = async () => {
+    try
+    {
+        let feeData = await axios.get(USWAPFEEJSON);
+        return feeData.data;
+    }
+    catch (error)
+    {
+        console.log("Error at getUswapFeeInfo() : ", error);
+        let ddata = {
+            "BASE_FEE": BASE_FEE,
+            "MIN_BASE_FEE": MIN_BASE_FEE,
+            "DIFF_COEFFICIENT": DIFF_COEFFICIENT,
+            "BASE_PRICE_HIVE_TO_SHIVE": BASE_PRICE_HIVE_TO_SHIVE
+        }        
+        return ddata;
     }
 };
