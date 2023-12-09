@@ -1,6 +1,6 @@
 let DECIMAL = parseInt(1000) || 0.0;
 
-let BASE_FEE = 0.001;
+let BASE_FEE = 0.0025;
 let MIN_BASE_FEE = 0.0005;
 let DIFF_COEFFICIENT = 0.0055;
 let BASE_PRICE_HIVE_TO_SHIVE = 1.000;
