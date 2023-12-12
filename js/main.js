@@ -1091,7 +1091,7 @@ $(window).bind("load", async function  () {
                             currency,
                             async function (res) {
                                 if (res.success === true) {
-                                    $("#status").text("Swaping Done Successfully!");
+                                    $("#status").text("Swapping Done Successfully!");
                                     $("#status").addClass("text-success");
                                     await updateBalance();
                                     //updateSwap();
@@ -1117,7 +1117,7 @@ $(window).bind("load", async function  () {
                             currency,
                             async function (res) {
                                 if (res.success === true) {
-                                    $("#status").text("Swaping Done Successfully!");
+                                    $("#status").text("Swapping Done Successfully!");
                                     $("#status").addClass("text-success");
                                     await updateBalance();
                                     //updateSwap();
@@ -1260,7 +1260,7 @@ $(window).bind("load", async function  () {
 
                                 case "sign_ack":
                                     $("#loading").addClass("d-none");
-                                    $("#status").text("Swaping Done Successfully!");
+                                    $("#status").text("Swapping Done Successfully!");
                                     $("#status").addClass("text-success");
                                     updateSwap();
 
