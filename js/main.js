@@ -50,7 +50,7 @@ $(window).bind("load", async function  () {
 		"https://api2.hive-engine.com/rpc",	
 		"https://engine.rishipanthee.com/",
 		"https://engine.beeswap.tools",				
-		"https://ha.herpc.dtools.dev/",			 
+		"https://enginerpc.com",			 
 		"https://api.hive-engine.com/rpc",
 		"https://herpc.actifit.io",
 		"https://herpc.dtools.dev"
