@@ -1,4 +1,4 @@
-let DECIMAL = parseInt(1000) || 0.0;
+let DECIMAL = 1000;
 
 let BASE_FEE = 0.002;
 let MIN_BASE_FEE = 0.00075;
@@ -17,11 +17,11 @@ let COINGECKO_HBD_URL = "https://api.coingecko.com/api/v3/simple/price?ids=hive_
 let USWAPFEEJSON = "https://fee.uswap.app/fee.json";
 
 // API Configuration with Timeouts
-const API_TIMEOUT = 20000; // 20 seconds timeout (increased due to slow node response)
-const API_RETRY_ATTEMPTS = 3;
-const API_RETRY_DELAY = 1000; // 1 second base delay
+const API_TIMEOUT = 30000; // 30 seconds timeout (increased for slow/unreliable nodes)
+const API_RETRY_ATTEMPTS = 2; // Reduced to 2 attempts to fail faster
+const API_RETRY_DELAY = 2000; // 2 second base delay
 
-// Configure Hive.js with shorter timeouts
+// Configure Hive.js with timeout
 hive.config.set('timeout', API_TIMEOUT);
 
 // Axios instance with timeout configuration
@@ -37,7 +37,9 @@ axiosInstance.interceptors.response.use(
     response => response,
     error => {
         if (error.code === 'ECONNABORTED' && error.message.includes('timeout')) {
-            console.error('API Request timeout:', error.config.url);
+            console.error('❌ API Request timeout:', error.config.url);
+        } else if (error.response && error.response.status === 504) {
+            console.error('❌ Gateway Timeout (504):', error.config.url);
         }
         return Promise.reject(error);
     }
@@ -59,9 +61,10 @@ async function retryWithBackoff(fn, retries = API_RETRY_ATTEMPTS, delay = API_RE
         return await fn();
     } catch (error) {
         if (retries <= 0) {
+            console.error('❌ All retry attempts exhausted');
             throw error;
         }
-        console.warn(`Retrying after ${delay}ms... (${retries} attempts left)`);
+        console.warn(`⏳ Retrying after ${delay}ms... (${retries} attempts left)`);
         await new Promise(resolve => setTimeout(resolve, delay));
         return retryWithBackoff(fn, retries - 1, delay * 2);
     }
@@ -477,11 +480,51 @@ $(window).bind("load", async function  () {
       
     processAPIs();  
     
+    // Configure Hive.js with alternative endpoints and failover
     hive.config.set('alternative_api_endpoints', rpc_nodes);
+    hive.config.set('failover_threshold', 3);
+    hive.config.set('use_condenser', true);
+
+    // Automatic node failover function with timeout
+    async function callHiveApiWithFailover(apiCall, maxRetries = 3, timeout = 10000) {
+        const currentNode = hive.api.options.url;
+        const nodesToTry = [currentNode, ...rpc_nodes.filter(n => n !== currentNode)];
+        let lastError = null;
+        
+        for (let i = 0; i < Math.min(maxRetries, nodesToTry.length); i++) {
+            try {
+                const nodeUrl = nodesToTry[i];
+                hive.api.setOptions({ url: nodeUrl, timeout: timeout });
+                console.log(`🔄 Trying Hive node [${i + 1}/${maxRetries}]: ${nodeUrl}`);
+                
+                const result = await Promise.race([
+                    apiCall(),
+                    new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Request timeout')), timeout)
+                    )
+                ]);
+                
+                console.log(`✅ Success with node: ${nodeUrl}`);
+                // Save working node if different from original
+                if (nodeUrl !== currentNode) {
+                    localStorage.setItem("selectedEndpoint", nodeUrl);
+                    console.log(`💾 Saved new working node: ${nodeUrl}`);
+                }
+                return result;
+            } catch (error) {
+                lastError = error;
+                console.warn(`❌ Failed with node ${nodesToTry[i]}: ${error.message}`);
+                if (i === Math.min(maxRetries, nodesToTry.length) - 1) {
+                    throw new Error(`All ${maxRetries} node attempts failed. Last error: ${lastError.message}`);
+                }
+                // Continue to next node
+            }
+        }
+    }
 
     window.history.replaceState({}, document.title, "/" + "");    
 
-    var user = null, bal = { HIVE: 0, "SWAP.HIVE": 0 }, bridgebal;
+    var user = null;
 
     function dec(val) {
         return Math.floor(val * 1000) / 1000;
@@ -733,16 +776,12 @@ $(window).bind("load", async function  () {
     async function getBalances(account) {
         try
         {
-            // Add timeout to getAccountsAsync
-            const res = await retryWithBackoff(async () => {
-                return await withTimeout(
-                    hive.api.getAccountsAsync([account]),
-                    API_TIMEOUT,
-                    'Get accounts timeout'
-                );
+            // Use failover function for automatic node switching
+            const res = await callHiveApiWithFailover(async () => {
+                return await hive.api.getAccountsAsync([account]);
             });
             
-            if (res.length > 0) 
+            if (res && res.length > 0) 
             {
                 // Add timeout to ssc.find
                 const res2 = await retryWithBackoff(async () => {
@@ -775,12 +814,8 @@ $(window).bind("load", async function  () {
     async function getExtBridge () {
         try
         {
-            const res = await retryWithBackoff(async () => {
-                return await withTimeout(
-                    hive.api.getAccountsAsync(['uswap']),
-                    API_TIMEOUT,
-                    'Get uswap account timeout'
-                );
+            const res = await callHiveApiWithFailover(async () => {
+                return await hive.api.getAccountsAsync(['uswap']);
             });
             
             var hiveLiq = res[0].balance.split(" ")[0];
@@ -1195,13 +1230,13 @@ $(window).bind("load", async function  () {
             await updateBalance();
             updateSwap();
             $(this).removeAttr("disabled");
-            localStorage['user'] = user;
+            localStorage.setItem('user', user);
         }
     });
 
-    if (localStorage['user']) {
-        $("#username").val(localStorage['user']);
-        user = localStorage['user'];
+    if (localStorage.getItem('user')) {
+        $("#username").val(localStorage.getItem('user'));
+        user = localStorage.getItem('user');
         updateBalance();
     }
 
@@ -1754,15 +1789,11 @@ $(window).bind("load", async function  () {
         var hiveBalance = 0.0;
         try
         {
-            let hiveData = await retryWithBackoff(async () => {
-                return await withTimeout(
-                    hive.api.callAsync('condenser_api.get_accounts', [[BRIDGE_USER]]),
-                    API_TIMEOUT,
-                    'Get HIVE amount timeout'
-                );
+            let hiveData = await callHiveApiWithFailover(async () => {
+                return await hive.api.callAsync('condenser_api.get_accounts', [[BRIDGE_USER]]);
             });
             
-            if(hiveData.length > 0)
+            if(hiveData && hiveData.length > 0)
             {        
                 hiveBalance = parseFloat(hiveData[0].balance.replace("HIVE", "").trim()) || 0.0;
                 // Save successful value to cache
@@ -1988,15 +2019,11 @@ const processHistory = async () => {
 const getHistory = async () => {
     var trxArray = [];
     try {
-        var resultData = await retryWithBackoff(async () => {
-            return await withTimeout(
-                hive.api.getAccountHistoryAsync("uswap", -1, 50),
-                API_TIMEOUT,
-                'Get account history timeout'
-            );
+        var resultData = await callHiveApiWithFailover(async () => {
+            return await hive.api.getAccountHistoryAsync("uswap", -1, 50);
         });
         
-        if (resultData.length > 0) {
+        if (resultData && resultData.length > 0) {
             resultData.forEach(function (tx) {
                 var op = tx[1].op;
                 var op_type = op[0];
@@ -2067,7 +2094,7 @@ const setTimeStamp = async (time) => {
 historyReader();
 
 async function getSelectedEndpoint() {
-    var endpoint = await localStorage.getItem("selectedEndpoint");
+    var endpoint = localStorage.getItem("selectedEndpoint");
     if (endpoint) 
     {
       return endpoint;
@@ -2079,7 +2106,7 @@ async function getSelectedEndpoint() {
 };
 
 async function getSelectedEngEndpoint() {
-    var endpoint = await localStorage.getItem("selectedEngEndpoint");
+    var endpoint = localStorage.getItem("selectedEngEndpoint");
     if (endpoint) 
     {
       return endpoint;
