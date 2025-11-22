@@ -70,6 +70,71 @@ async function retryWithBackoff(fn, retries = API_RETRY_ATTEMPTS, delay = API_RE
     }
 }
 
+// RPC node lists - defined globally for use across all functions
+var rpc_nodes = [
+    "https://api.deathwing.me",
+    "https://hive.roelandp.nl",
+    "https://api.openhive.network",
+    "https://rpc.ausbit.dev",
+    "https://hived.emre.sh",
+    "https://hive-api.arcange.eu",
+    "https://api.hive.blog",
+    "https://api.c0ff33a.uk",
+    "https://rpc.ecency.com",
+    "https://anyx.io",
+    "https://techcoderx.com",
+    "https://api.hive.blue",
+    "https://rpc.mahdiyari.info"
+];
+
+var he_rpc_nodes = [
+    "https://api.primersion.com",	
+    "https://api2.hive-engine.com/rpc",	
+    "https://engine.rishipanthee.com/",
+    "https://engine.beeswap.tools",				
+    "https://enginerpc.com",			 
+    "https://api.hive-engine.com/rpc",
+    "https://herpc.actifit.io",
+    "https://herpc.dtools.dev"
+];
+
+// Automatic node failover function with timeout - defined globally
+async function callHiveApiWithFailover(apiCall, maxRetries = 3, timeout = 10000) {
+    const currentNode = hive.api.options.url;
+    const nodesToTry = [currentNode, ...rpc_nodes.filter(n => n !== currentNode)];
+    let lastError = null;
+    
+    for (let i = 0; i < Math.min(maxRetries, nodesToTry.length); i++) {
+        try {
+            const nodeUrl = nodesToTry[i];
+            hive.api.setOptions({ url: nodeUrl, timeout: timeout });
+            console.log(`🔄 Trying Hive node [${i + 1}/${maxRetries}]: ${nodeUrl}`);
+            
+            const result = await Promise.race([
+                apiCall(),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Request timeout')), timeout)
+                )
+            ]);
+            
+            console.log(`✅ Success with node: ${nodeUrl}`);
+            // Save working node if different from original
+            if (nodeUrl !== currentNode) {
+                localStorage.setItem("selectedEndpoint", nodeUrl);
+                console.log(`💾 Saved new working node: ${nodeUrl}`);
+            }
+            return result;
+        } catch (error) {
+            lastError = error;
+            console.warn(`❌ Failed with node ${nodesToTry[i]}: ${error.message}`);
+            if (i === Math.min(maxRetries, nodesToTry.length) - 1) {
+                throw new Error(`All ${maxRetries} node attempts failed. Last error: ${lastError.message}`);
+            }
+            // Continue to next node
+        }
+    }
+}
+
 $(window).bind("load", async function  () {
 
     // Cache for working nodes
@@ -148,33 +213,6 @@ $(window).bind("load", async function  () {
     console.log("DIFF_COEFFICIENT : ", DIFF_COEFFICIENT);
     console.log("BASE_PRICE_HIVE_TO_SHIVE : ", BASE_PRICE_HIVE_TO_SHIVE);
     console.log("==================================================");
-
-    var rpc_nodes = [
-        "https://api.deathwing.me",
-		"https://hive.roelandp.nl",
-		"https://api.openhive.network",
-		"https://rpc.ausbit.dev",
-		"https://hived.emre.sh",
-		"https://hive-api.arcange.eu",
-		"https://api.hive.blog",
-		"https://api.c0ff33a.uk",
-		"https://rpc.ecency.com",
-		"https://anyx.io",
-		"https://techcoderx.com",
-		"https://api.hive.blue",
-		"https://rpc.mahdiyari.info"
-    ];
-
-    var he_rpc_nodes = [
-        "https://api.primersion.com",	
-		"https://api2.hive-engine.com/rpc",	
-		"https://engine.rishipanthee.com/",
-		"https://engine.beeswap.tools",				
-		"https://enginerpc.com",			 
-		"https://api.hive-engine.com/rpc",
-		"https://herpc.actifit.io",
-		"https://herpc.dtools.dev"
-    ];    
     
     async function checkHiveNodeStatus(nodeUrl, statusElement) {
         try 
@@ -484,43 +522,6 @@ $(window).bind("load", async function  () {
     hive.config.set('alternative_api_endpoints', rpc_nodes);
     hive.config.set('failover_threshold', 3);
     hive.config.set('use_condenser', true);
-
-    // Automatic node failover function with timeout
-    async function callHiveApiWithFailover(apiCall, maxRetries = 3, timeout = 10000) {
-        const currentNode = hive.api.options.url;
-        const nodesToTry = [currentNode, ...rpc_nodes.filter(n => n !== currentNode)];
-        let lastError = null;
-        
-        for (let i = 0; i < Math.min(maxRetries, nodesToTry.length); i++) {
-            try {
-                const nodeUrl = nodesToTry[i];
-                hive.api.setOptions({ url: nodeUrl, timeout: timeout });
-                console.log(`🔄 Trying Hive node [${i + 1}/${maxRetries}]: ${nodeUrl}`);
-                
-                const result = await Promise.race([
-                    apiCall(),
-                    new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Request timeout')), timeout)
-                    )
-                ]);
-                
-                console.log(`✅ Success with node: ${nodeUrl}`);
-                // Save working node if different from original
-                if (nodeUrl !== currentNode) {
-                    localStorage.setItem("selectedEndpoint", nodeUrl);
-                    console.log(`💾 Saved new working node: ${nodeUrl}`);
-                }
-                return result;
-            } catch (error) {
-                lastError = error;
-                console.warn(`❌ Failed with node ${nodesToTry[i]}: ${error.message}`);
-                if (i === Math.min(maxRetries, nodesToTry.length) - 1) {
-                    throw new Error(`All ${maxRetries} node attempts failed. Last error: ${lastError.message}`);
-                }
-                // Continue to next node
-            }
-        }
-    }
 
     window.history.replaceState({}, document.title, "/" + "");    
 
@@ -1847,7 +1848,8 @@ $(window).bind("load", async function  () {
     changeMinOutput();
 
     getTokenMarket();
-    getHiveMarket();    
+    getHiveMarket();
+    historyReader();
 });
 
 const historyReader = async () => {
@@ -2090,8 +2092,6 @@ const setTimeStamp = async (time) => {
         console.log("Error at setTimeStamp() : ", error);
     }
 };
-
-historyReader();
 
 async function getSelectedEndpoint() {
     var endpoint = localStorage.getItem("selectedEndpoint");
