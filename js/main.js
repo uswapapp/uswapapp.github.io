@@ -8,6 +8,8 @@ var HIVEPOOL = 24900;
 var SHIVEPOOL = 24900;
 const BRIDGE_USER = "uswap";
 let ssc;
+let bal = { HIVE: 0, "SWAP.HIVE": 0 };
+let bridgebal = { HIVE: 0, "SWAP.HIVE": 0 };
 
 let COINGECKO_HIVE_URL = "https://api.coingecko.com/api/v3/simple/price?ids=hive&vs_currencies=usd";
 let COINGECKO_HBD_URL = "https://api.coingecko.com/api/v3/simple/price?ids=hive_dollar&vs_currencies=usd";
@@ -15,7 +17,7 @@ let COINGECKO_HBD_URL = "https://api.coingecko.com/api/v3/simple/price?ids=hive_
 let USWAPFEEJSON = "https://fee.uswap.app/fee.json";
 
 // API Configuration with Timeouts
-const API_TIMEOUT = 10000; // 10 seconds timeout
+const API_TIMEOUT = 20000; // 20 seconds timeout (increased due to slow node response)
 const API_RETRY_ATTEMPTS = 3;
 const API_RETRY_DELAY = 1000; // 1 second base delay
 
@@ -91,6 +93,45 @@ $(window).bind("load", async function  () {
         nodeCache.lastUpdate = Date.now();
         localStorage.setItem('nodeCacheTime', nodeCache.lastUpdate);
     }
+
+    // Cache for pool values (HIVEPOOL and SHIVEPOOL)
+    const poolCache = {
+        hivePool: localStorage.getItem('cachedHivePool') || null,
+        shivePool: localStorage.getItem('cachedShivePool') || null,
+        lastUpdate: localStorage.getItem('poolCacheTime') || 0
+    };
+
+    // Load cached pool values at startup if available and not too old (30 minutes)
+    function loadCachedPoolValues() {
+        const thirtyMinutes = 30 * 60 * 1000;
+        if (Date.now() - poolCache.lastUpdate < thirtyMinutes) {
+            if (poolCache.hivePool) {
+                HIVEPOOL = parseFloat(poolCache.hivePool);
+                console.log("📦 Loaded cached HIVEPOOL:", HIVEPOOL);
+            }
+            if (poolCache.shivePool) {
+                SHIVEPOOL = parseFloat(poolCache.shivePool);
+                console.log("📦 Loaded cached SHIVEPOOL:", SHIVEPOOL);
+            }
+        }
+    }
+
+    // Save pool values to cache when successfully fetched
+    function savePoolToCache(hivePool, shivePool) {
+        if (hivePool && hivePool > 0) {
+            poolCache.hivePool = hivePool;
+            localStorage.setItem('cachedHivePool', hivePool.toString());
+        }
+        if (shivePool && shivePool > 0) {
+            poolCache.shivePool = shivePool;
+            localStorage.setItem('cachedShivePool', shivePool.toString());
+        }
+        poolCache.lastUpdate = Date.now();
+        localStorage.setItem('poolCacheTime', poolCache.lastUpdate.toString());
+    }
+
+    // Load cached values at startup
+    loadCachedPoolValues();
 
     let uswapData = await getUswapFeeInfo();
     BASE_FEE = parseFloat(uswapData.BASE_FEE) || 0.0;
@@ -823,16 +864,21 @@ $(window).bind("load", async function  () {
             const val = $("#inputquantity").val();
             var inputVal = parseFloat(val) || 0.0;
 
-            var hBalance = await calcHiveAmount();
-            var shBalance = await calcSwapHiveAmount();
+            // Try to fetch fresh pool values, but continue with defaults if API fails
+            try {
+                var hBalance = await calcHiveAmount();
+                var shBalance = await calcSwapHiveAmount();
 
-            if(hBalance > 0)
-            {
-                HIVEPOOL = hBalance;
-            }
-            if(shBalance > 0)
-            {
-                SHIVEPOOL = shBalance;
+                if(hBalance > 0)
+                {
+                    HIVEPOOL = hBalance;
+                }
+                if(shBalance > 0)
+                {
+                    SHIVEPOOL = shBalance;
+                }
+            } catch (poolError) {
+                console.warn("⚠ updateSwap: API error - using default pool values:", poolError.message);
             }
             
             var expResult = 0.0;
@@ -919,16 +965,31 @@ $(window).bind("load", async function  () {
 
             if(inputVal > 0.0)
             {
-                var hBalance = await calcHiveAmount();
-                var shBalance = await calcSwapHiveAmount();
-                if(hBalance > 0)
-                {
-                    HIVEPOOL = hBalance;
+                // Try to fetch fresh pool values, but continue with defaults if API fails
+                try {
+                    var hBalance = await calcHiveAmount();
+                    var shBalance = await calcSwapHiveAmount();
+                    if(hBalance > 0)
+                    {
+                        HIVEPOOL = hBalance;
+                        console.log("✓ Updated HIVEPOOL:", hBalance);
+                    }
+                    else
+                    {
+                        console.warn("⚠ Using default HIVEPOOL value (API unavailable)");
+                    }
+                    if(shBalance > 0)
+                    {
+                        SHIVEPOOL = shBalance;
+                        console.log("✓ Updated SHIVEPOOL:", shBalance);
+                    }
+                    else
+                    {
+                        console.warn("⚠ Using default SHIVEPOOL value (API unavailable)");
+                    }
+                } catch (poolError) {
+                    console.warn("⚠ API error - using default pool values:", poolError.message);
                 }
-                if(shBalance > 0)
-                {
-                    SHIVEPOOL = shBalance;
-                }               
                 
                 if(insymbol == "HIVE")
                 {
@@ -1644,16 +1705,21 @@ $(window).bind("load", async function  () {
 
             if(inputVal > 0.0)
             {
-                var hBalance = await calcHiveAmount();
-                var shBalance = await calcSwapHiveAmount();
-                if(hBalance > 0)
-                {
-                    HIVEPOOL = hBalance;
+                // Try to fetch fresh pool values, but continue with defaults if API fails
+                try {
+                    var hBalance = await calcHiveAmount();
+                    var shBalance = await calcSwapHiveAmount();
+                    if(hBalance > 0)
+                    {
+                        HIVEPOOL = hBalance;
+                    }
+                    if(shBalance > 0)
+                    {
+                        SHIVEPOOL = shBalance;
+                    }
+                } catch (poolError) {
+                    console.warn("⚠ calcOutput: API error - using default pool values:", poolError.message);
                 }
-                if(shBalance > 0)
-                {
-                    SHIVEPOOL = shBalance;
-                }               
                 
                 if(selectedSymbol == "HIVE")
                 {
@@ -1699,6 +1765,11 @@ $(window).bind("load", async function  () {
             if(hiveData.length > 0)
             {        
                 hiveBalance = parseFloat(hiveData[0].balance.replace("HIVE", "").trim()) || 0.0;
+                // Save successful value to cache
+                if (hiveBalance > 0) {
+                    localStorage.setItem('cachedHivePool', hiveBalance.toString());
+                    localStorage.setItem('poolCacheTime', Date.now().toString());
+                }
             }
             return hiveBalance;
         }
@@ -1725,7 +1796,11 @@ $(window).bind("load", async function  () {
             {        
                 swapHiveBalance = parseFloat(swapHiveData.balance) || 0.0;
                 swapHiveBalance = Math.floor(swapHiveBalance * DECIMAL) / DECIMAL;
-                swapHiveBalance = parseFloat(swapHiveData.balance) || 0.0;            
+                // Save successful value to cache
+                if (swapHiveBalance > 0) {
+                    localStorage.setItem('cachedShivePool', swapHiveBalance.toString());
+                    localStorage.setItem('poolCacheTime', Date.now().toString());
+                }
             }
             return swapHiveBalance;
         }
