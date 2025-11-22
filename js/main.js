@@ -14,7 +14,83 @@ let COINGECKO_HBD_URL = "https://api.coingecko.com/api/v3/simple/price?ids=hive_
 
 let USWAPFEEJSON = "https://fee.uswap.app/fee.json";
 
+// API Configuration with Timeouts
+const API_TIMEOUT = 10000; // 10 seconds timeout
+const API_RETRY_ATTEMPTS = 3;
+const API_RETRY_DELAY = 1000; // 1 second base delay
+
+// Configure Hive.js with shorter timeouts
+hive.config.set('timeout', API_TIMEOUT);
+
+// Axios instance with timeout configuration
+const axiosInstance = axios.create({
+    timeout: API_TIMEOUT,
+    headers: {
+        'Content-Type': 'application/json'
+    }
+});
+
+// Add axios response interceptor for better error handling
+axiosInstance.interceptors.response.use(
+    response => response,
+    error => {
+        if (error.code === 'ECONNABORTED' && error.message.includes('timeout')) {
+            console.error('API Request timeout:', error.config.url);
+        }
+        return Promise.reject(error);
+    }
+);
+
+// Generic timeout wrapper for promises
+function withTimeout(promise, timeoutMs = API_TIMEOUT, errorMessage = 'Operation timed out') {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => 
+            setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
+        )
+    ]);
+}
+
+// Retry logic with exponential backoff
+async function retryWithBackoff(fn, retries = API_RETRY_ATTEMPTS, delay = API_RETRY_DELAY) {
+    try {
+        return await fn();
+    } catch (error) {
+        if (retries <= 0) {
+            throw error;
+        }
+        console.warn(`Retrying after ${delay}ms... (${retries} attempts left)`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return retryWithBackoff(fn, retries - 1, delay * 2);
+    }
+}
+
 $(window).bind("load", async function  () {
+
+    // Cache for working nodes
+    const nodeCache = {
+        hive: localStorage.getItem('workingHiveNodes') ? JSON.parse(localStorage.getItem('workingHiveNodes')) : [],
+        engine: localStorage.getItem('workingEngineNodes') ? JSON.parse(localStorage.getItem('workingEngineNodes')) : [],
+        lastUpdate: localStorage.getItem('nodeCacheTime') || 0
+    };
+
+    // Update node cache (refresh every 5 minutes)
+    function shouldUpdateNodeCache() {
+        const fiveMinutes = 5 * 60 * 1000;
+        return Date.now() - nodeCache.lastUpdate > fiveMinutes;
+    }
+
+    function updateNodeCache(type, nodes) {
+        if (type === 'hive') {
+            nodeCache.hive = nodes;
+            localStorage.setItem('workingHiveNodes', JSON.stringify(nodes));
+        } else if (type === 'engine') {
+            nodeCache.engine = nodes;
+            localStorage.setItem('workingEngineNodes', JSON.stringify(nodes));
+        }
+        nodeCache.lastUpdate = Date.now();
+        localStorage.setItem('nodeCacheTime', nodeCache.lastUpdate);
+    }
 
     let uswapData = await getUswapFeeInfo();
     BASE_FEE = parseFloat(uswapData.BASE_FEE) || 0.0;
@@ -59,24 +135,30 @@ $(window).bind("load", async function  () {
     async function checkHiveNodeStatus(nodeUrl, statusElement) {
         try 
         {
-            const response = await axios.get(nodeUrl);
+            // Use configured axios instance with timeout
+            const response = await withTimeout(
+                axiosInstance.get(nodeUrl),
+                5000, // 5 second timeout for node checks
+                'Node check timeout'
+            );
             if (response.status === 200) 
             {
                 statusElement.textContent = "Working";
-                statusElement.classList.remove("fail"); // Remove "fail" class if present
+                statusElement.classList.remove("fail");
                 statusElement.classList.add("working");
             } 
             else 
             {
                 statusElement.textContent = "Fail";
-                statusElement.classList.remove("working"); // Remove "working" class if present
+                statusElement.classList.remove("working");
                 statusElement.classList.add("fail");
             }
         } 
         catch (error) 
         {
+          console.log(`Node check failed for ${nodeUrl}:`, error.message);
           statusElement.textContent = "Fail";
-          statusElement.classList.remove("working"); // Remove "working" class if present
+          statusElement.classList.remove("working");
           statusElement.classList.add("fail");
         }
     };
@@ -99,52 +181,51 @@ $(window).bind("load", async function  () {
             // Clear the existing table body content
             tableBody.innerHTML = "";
     
-            for (let i = 0; i < rpc_nodes.length; i++) 
-            {
-                const nodeUrl = rpc_nodes[i];
+            // Check nodes in parallel for faster results
+            const checkPromises = rpc_nodes.map(async (nodeUrl) => {
                 const row = document.createElement("tr");
                 const urlCell = document.createElement("td");
                 const statusCell = document.createElement("td");
     
                 urlCell.textContent = nodeUrl;
-                urlCell.classList.add("node-url"); // add new class to url cell
+                urlCell.classList.add("node-url");
                 statusCell.textContent = "Checking...";
     
                 row.appendChild(urlCell);
                 row.appendChild(statusCell);
-    
                 tableBody.appendChild(row);
     
-                // Check node status
-                checkHiveNodeStatus(nodeUrl, statusCell);
-            }
+                // Check node status with reduced timeout for faster checking
+                await checkHiveNodeStatus(nodeUrl, statusCell);
+                
+                return {
+                    row,
+                    isWorking: statusCell.textContent === "Working",
+                    nodeUrl
+                };
+            });
+
+            // Wait for all checks to complete
+            const results = await Promise.all(checkPromises);
+            
+            // Separate working and failed nodes
+            const workingNodeUrls = [];
+            results.forEach(({ row, isWorking, nodeUrl }) => {
+                if (isWorking) {
+                    workingNodes.push(row);
+                    workingNodeUrls.push(nodeUrl);
+                } else {
+                    failedNodes.push(row);
+                }
+            });
+
+            // Update cache with working nodes
+            updateNodeCache('hive', workingNodeUrls);
     
-            // Reorder the list of nodes based on their status
-            setTimeout(() => {
-                const rows = Array.from(tableBody.getElementsByTagName("tr"));
-    
-                rows.forEach((row) => {
-                    if (row.lastChild.textContent === "Working") 
-                    {
-                        workingNodes.push(row);
-                    } 
-                    else 
-                    {
-                        failedNodes.push(row);
-                    }
-                });
-    
-                tableBody.innerHTML = "";
-    
-                // Append workingNodes first, then failedNodes
-                workingNodes.forEach((row) => {
-                    tableBody.appendChild(row);
-                });
-    
-                failedNodes.forEach((row) => {
-                    tableBody.appendChild(row);
-                });
-            }, 5000);
+            // Reorder the table
+            tableBody.innerHTML = "";
+            workingNodes.forEach((row) => tableBody.appendChild(row));
+            failedNodes.forEach((row) => tableBody.appendChild(row));
     
             // Add event listeners to the rows in the table body
             var rowsHive = tableBody.getElementsByTagName("tr");
@@ -158,7 +239,7 @@ $(window).bind("load", async function  () {
                     var nodeUrl = this.cells[0].textContent;
     
                     // Set the API endpoint to the selected node
-                    hive.api.setOptions({ url: nodeUrl });
+                    hive.api.setOptions({ url: nodeUrl, timeout: API_TIMEOUT });
     
                     // Update the button text
                     buttonHive.value = nodeUrl;
@@ -188,24 +269,30 @@ $(window).bind("load", async function  () {
     async function checkEngineNodeStatus(nodeUrl, statusElement) {
         try 
         {
-            const response = await axios.get(nodeUrl);
+            // Use configured axios instance with timeout
+            const response = await withTimeout(
+                axiosInstance.get(nodeUrl),
+                5000, // 5 second timeout for node checks
+                'Engine node check timeout'
+            );
             if (response.status === 200) 
             {
                 statusElement.textContent = "Working";
-                statusElement.classList.remove("fail"); // Remove "fail" class if present
+                statusElement.classList.remove("fail");
                 statusElement.classList.add("working");
             } 
             else 
             {
                 statusElement.textContent = "Fail";
-                statusElement.classList.remove("working"); // Remove "working" class if present
+                statusElement.classList.remove("working");
                 statusElement.classList.add("fail");
             }
         } 
         catch (error) 
         {
+          console.log(`Engine node check failed for ${nodeUrl}:`, error.message);
           statusElement.textContent = "Fail";
-          statusElement.classList.remove("working"); // Remove "working" class if present
+          statusElement.classList.remove("working");
           statusElement.classList.add("fail");
         }
     };
@@ -226,49 +313,51 @@ $(window).bind("load", async function  () {
             // Clear the existing table body content
             tableBody.innerHTML = "";
     
-            for (let i = 0; i < he_rpc_nodes.length; i++) 
-            {
-                const nodeUrl = he_rpc_nodes[i];
+            // Check nodes in parallel for faster results
+            const checkPromises = he_rpc_nodes.map(async (nodeUrl) => {
                 const row = document.createElement("tr");
                 const urlCell = document.createElement("td");
                 const statusCell = document.createElement("td");
     
                 urlCell.textContent = nodeUrl;
-                urlCell.classList.add("node-url"); // add new class to url cell
+                urlCell.classList.add("node-url");
                 statusCell.textContent = "Checking...";
     
                 row.appendChild(urlCell);
                 row.appendChild(statusCell);
-    
                 tableBody.appendChild(row);
     
-                // Check node status
-                checkEngineNodeStatus(nodeUrl, statusCell);
-            }
+                // Check node status with reduced timeout
+                await checkEngineNodeStatus(nodeUrl, statusCell);
+                
+                return {
+                    row,
+                    isWorking: statusCell.textContent === "Working",
+                    nodeUrl
+                };
+            });
+
+            // Wait for all checks to complete
+            const results = await Promise.all(checkPromises);
+            
+            // Separate working and failed nodes
+            const workingNodeUrls = [];
+            results.forEach(({ row, isWorking, nodeUrl }) => {
+                if (isWorking) {
+                    workingNodes.push(row);
+                    workingNodeUrls.push(nodeUrl);
+                } else {
+                    failedNodes.push(row);
+                }
+            });
+
+            // Update cache with working nodes
+            updateNodeCache('engine', workingNodeUrls);
     
-            // Reorder the list of nodes based on their status
-            setTimeout(() => {
-                const rows = Array.from(tableBody.getElementsByTagName("tr"));
-    
-                rows.forEach((row) => {
-                    if (row.lastChild.textContent === "Working") {
-                        workingNodes.push(row);
-                    } else {
-                        failedNodes.push(row);
-                    }
-                });
-    
-                tableBody.innerHTML = "";
-    
-                // Append workingNodes first, then failedNodes
-                workingNodes.forEach((row) => {
-                    tableBody.appendChild(row);
-                });
-    
-                failedNodes.forEach((row) => {
-                    tableBody.appendChild(row);
-                });
-            }, 5000);
+            // Reorder the table
+            tableBody.innerHTML = "";
+            workingNodes.forEach((row) => tableBody.appendChild(row));
+            failedNodes.forEach((row) => tableBody.appendChild(row));
     
             // Add event listeners to the rows in the table body
             var rowsEngine = tableBody.getElementsByTagName("tr");
@@ -312,7 +401,11 @@ $(window).bind("load", async function  () {
     async function initializeHiveAPI() {
         var selectedEndpoint = await getSelectedEndpoint();
         console.log("SELECT HIVE API NODE : ", selectedEndpoint);
-        hive.api.setOptions({ url: selectedEndpoint });
+        hive.api.setOptions({ 
+            url: selectedEndpoint,
+            timeout: API_TIMEOUT,
+            useAppbaseApi: true
+        });
 
         var button = document.getElementById("popup-button-hive");
         button.value = selectedEndpoint;
@@ -599,10 +692,26 @@ $(window).bind("load", async function  () {
     async function getBalances(account) {
         try
         {
-            const res = await hive.api.getAccountsAsync([account]);
+            // Add timeout to getAccountsAsync
+            const res = await retryWithBackoff(async () => {
+                return await withTimeout(
+                    hive.api.getAccountsAsync([account]),
+                    API_TIMEOUT,
+                    'Get accounts timeout'
+                );
+            });
+            
             if (res.length > 0) 
             {
-                const res2 = await ssc.find("tokens", "balances", { account, symbol: { "$in": ["SWAP.HIVE"] } }, 1000, 0, []);
+                // Add timeout to ssc.find
+                const res2 = await retryWithBackoff(async () => {
+                    return await withTimeout(
+                        ssc.find("tokens", "balances", { account, symbol: { "$in": ["SWAP.HIVE"] } }, 1000, 0, []),
+                        API_TIMEOUT,
+                        'Get SWAP.HIVE balance timeout'
+                    );
+                });
+                
                 var swaphive = res2.find(el => el.symbol === "SWAP.HIVE");
                 return {
                     HIVE: dec(parseFloat(res[0].balance.split(" ")[0])),
@@ -618,17 +727,32 @@ $(window).bind("load", async function  () {
         catch (error)
         {
             console.log("Error at getBalances() : ", error);
+            return { HIVE: 0, "SWAP.HIVE": 0 };
         }
     };
 
     async function getExtBridge () {
         try
         {
-            const res = await hive.api.getAccountsAsync(['uswap']);
+            const res = await retryWithBackoff(async () => {
+                return await withTimeout(
+                    hive.api.getAccountsAsync(['uswap']),
+                    API_TIMEOUT,
+                    'Get uswap account timeout'
+                );
+            });
+            
             var hiveLiq = res[0].balance.split(" ")[0];
             hiveLiq = Math.floor(hiveLiq * DECIMAL) / DECIMAL;
 
-            const res2 = await ssc.findOne("tokens", "balances", { account: 'uswap', symbol: 'SWAP.HIVE' });
+            const res2 = await retryWithBackoff(async () => {
+                return await withTimeout(
+                    ssc.findOne("tokens", "balances", { account: 'uswap', symbol: 'SWAP.HIVE' }),
+                    API_TIMEOUT,
+                    'Get uswap SWAP.HIVE balance timeout'
+                );
+            });
+            
             var swaphiveLiq = parseFloat(res2.balance) || 0.0;
             swaphiveLiq = Math.floor(swaphiveLiq * DECIMAL) / DECIMAL;
 
@@ -1564,7 +1688,14 @@ $(window).bind("load", async function  () {
         var hiveBalance = 0.0;
         try
         {
-            let hiveData = await hive.api.callAsync('condenser_api.get_accounts', [[BRIDGE_USER]]);
+            let hiveData = await retryWithBackoff(async () => {
+                return await withTimeout(
+                    hive.api.callAsync('condenser_api.get_accounts', [[BRIDGE_USER]]),
+                    API_TIMEOUT,
+                    'Get HIVE amount timeout'
+                );
+            });
+            
             if(hiveData.length > 0)
             {        
                 hiveBalance = parseFloat(hiveData[0].balance.replace("HIVE", "").trim()) || 0.0;
@@ -1582,7 +1713,14 @@ $(window).bind("load", async function  () {
         var swapHiveBalance = 0.0;
         try
         {
-            let swapHiveData = await ssc.findOne('tokens', 'balances', {'account': BRIDGE_USER, 'symbol': 'SWAP.HIVE'});
+            let swapHiveData = await retryWithBackoff(async () => {
+                return await withTimeout(
+                    ssc.findOne('tokens', 'balances', {'account': BRIDGE_USER, 'symbol': 'SWAP.HIVE'}),
+                    API_TIMEOUT,
+                    'Get SWAP.HIVE amount timeout'
+                );
+            });
+            
             if(swapHiveData != null)
             {        
                 swapHiveBalance = parseFloat(swapHiveData.balance) || 0.0;
@@ -1775,7 +1913,14 @@ const processHistory = async () => {
 const getHistory = async () => {
     var trxArray = [];
     try {
-        var resultData = await hive.api.getAccountHistoryAsync("uswap", -1, 50);
+        var resultData = await retryWithBackoff(async () => {
+            return await withTimeout(
+                hive.api.getAccountHistoryAsync("uswap", -1, 50),
+                API_TIMEOUT,
+                'Get account history timeout'
+            );
+        });
+        
         if (resultData.length > 0) {
             resultData.forEach(function (tx) {
                 var op = tx[1].op;
@@ -1873,9 +2018,16 @@ async function getSelectedEngEndpoint() {
 const getHiveMarket = async () => {
     try
     {
-        let hivedata = await axios.get(COINGECKO_HIVE_URL);              
+        let hivedata = await retryWithBackoff(async () => {
+            return await withTimeout(
+                axiosInstance.get(COINGECKO_HIVE_URL),
+                API_TIMEOUT,
+                'CoinGecko HIVE API timeout'
+            );
+        });
+        
         let hivePrice = parseFloat(hivedata.data.hive.usd);
-        //let hbddata = await axios.get(COINGECKO_HBD_URL);                
+        //let hbddata = await axiosInstance.get(COINGECKO_HBD_URL);                
         //let hbdPrice = parseFloat(hbddata.data.hive_dollar.usd);
 
         let hbdPrice = await getHBDMarketPrice(hivePrice);
@@ -1885,12 +2037,20 @@ const getHiveMarket = async () => {
     catch (error)
     {
         console.log("Error at getHiveMarket() : ", error);
+        // Set fallback values on error
+        $("#hiveusdprice").text("$0.000");        
+        $("#hbdusdprice").text("$0.000");
     }
 };
 
 async function callGetMarketTicker() {
     return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+            reject(new Error('getTicker timeout'));
+        }, API_TIMEOUT);
+        
         hive.api.getTicker((err, result) => {
+            clearTimeout(timeout);
             if (err) 
             {
                 reject(err);
@@ -1907,7 +2067,14 @@ const getHBDMarketPrice = async (hivePrice) => {
     let hbdPrice = 0.0;
     try
     {
-        const response = await callGetMarketTicker();
+        const response = await retryWithBackoff(async () => {
+            return await withTimeout(
+                callGetMarketTicker(),
+                API_TIMEOUT,
+                'Get market ticker timeout'
+            );
+        });
+        
         let bidPrice = parseFloat(response.highest_bid) || 0.0;
         let askPrice = parseFloat(response.lowest_ask) || 0.0;        
         let avgPrice = Math.floor(((bidPrice + askPrice) / 2) * DECIMAL) / DECIMAL;
@@ -1926,7 +2093,14 @@ const getHBDMarketPrice = async (hivePrice) => {
 const getTokenMarket = async () => {
     try
     {        
-        let hivedata = await axios.get(COINGECKO_HIVE_URL);              
+        let hivedata = await retryWithBackoff(async () => {
+            return await withTimeout(
+                axiosInstance.get(COINGECKO_HIVE_URL),
+                API_TIMEOUT,
+                'CoinGecko API timeout'
+            );
+        });
+        
         let hivePrice = parseFloat(hivedata.data.hive.usd);
 
         let marketInfo = await getTokenMarketInfo(["VAULT", "UPME", "WINEX", "HELIOS"]);
@@ -1965,6 +2139,11 @@ const getTokenMarket = async () => {
     catch (error)
     {
         console.log("Error at getTokenMarket() : ", error);
+        // Set fallback values on error
+        $("#vaultusdprice").text("$0.000");        
+        $("#upmeusdprice").text("$0.000");
+        $("#winexusdprice").text("$0.000");        
+        $("#heliosusdprice").text("$0.000");
     }  
 };
 
@@ -1972,7 +2151,14 @@ const getTokenMarketInfo = async (symbols) => {
     var marketJson = [];
     try
     {        
-        marketJson = await ssc.find("market", "metrics", { symbol: { "$in": [...symbols] } }, 1000, 0, []);            
+        marketJson = await retryWithBackoff(async () => {
+            return await withTimeout(
+                ssc.find("market", "metrics", { symbol: { "$in": [...symbols] } }, 1000, 0, []),
+                API_TIMEOUT,
+                'Get token market info timeout'
+            );
+        });
+        
         return marketJson;
     }
     catch (error)
@@ -1985,7 +2171,14 @@ const getTokenMarketInfo = async (symbols) => {
 const getUswapFeeInfo = async () => {
     try
     {
-        let feeData = await axios.get(USWAPFEEJSON);
+        let feeData = await retryWithBackoff(async () => {
+            return await withTimeout(
+                axiosInstance.get(USWAPFEEJSON),
+                API_TIMEOUT,
+                'Get uswap fee info timeout'
+            );
+        });
+        
         return feeData.data;
     }
     catch (error)
