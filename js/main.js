@@ -960,14 +960,19 @@ $(window).bind("load", async function  () {
 
             const slipageQty = document.getElementById('slipageqty').textContent;
             var minExpectVal = parseFloat(slipageQty) || 0.0;
-            if(minExpectVal > 0.0)
+            
+            // Check if "No Memo" is selected
+            const noMemoChecked = $("#noMemoCheck").is(':checked');
+            
+            if(minExpectVal > 0.0 || noMemoChecked)
             {
                 if (bridgebal[outsymbol] >= output
                     && bal[insymbol] >= val
                     && insymbol !== outsymbol
                     && val >= 1) {
                     $("#swap").removeAttr("disabled");
-                    if (r) r(true, parseFloat(val).toFixed(3), insymbol, minExpectVal.toFixed(3));
+                    const memoToSend = noMemoChecked ? "0" : minExpectVal.toFixed(3);
+                    if (r) r(true, parseFloat(val).toFixed(3), insymbol, memoToSend);
                 } 
                 else {
                     $("#swap").attr("disabled", "true");
@@ -1293,6 +1298,13 @@ $(window).bind("load", async function  () {
         await refresh();
         await updateBalance();
         var memoMsg = $("#slipageqty").val();
+        
+        // Check if "No Memo" checkbox is checked
+        const noMemoChecked = $("#noMemoCheck").is(':checked');
+        if (noMemoChecked) {
+            memoMsg = "0";
+        }
+        
         console.log("memoMsg : ", memoMsg);
 
         updateSwap(function (canSwap, amount, currency, memoMsg) {
