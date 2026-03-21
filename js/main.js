@@ -90,8 +90,6 @@ var rpc_nodes = [
 var he_rpc_nodes = [
     "https://api.primersion.com",	
     "https://api2.hive-engine.com/rpc",	
-    "https://engine.rishipanthee.com/",
-    "https://engine.beeswap.tools",				
     "https://enginerpc.com",			 
     "https://api.hive-engine.com/rpc",
     "https://herpc.actifit.io",
@@ -1002,7 +1000,7 @@ $(window).bind("load", async function  () {
 
             const slipageQty = document.getElementById('slipageqty');
             const selectedRadioElement = document.querySelector('input[name="my-radio-group"]:checked');
-            const selectedRadioVal = selectedRadioElement ? parseFloat(selectedRadioElement.value) : 0;
+            const selectedRadioVal = selectedRadioElement ? parseFloat(selectedRadioElement.value) : 0.02;
 
             if(inputVal > 0.0)
             {
@@ -1170,7 +1168,7 @@ $(window).bind("load", async function  () {
             const output = document.getElementById('outputquantity');
             const slipageQty = document.getElementById('slipageqty');
             const selectedRadioElement = document.querySelector('input[name="my-radio-group"]:checked');
-            const selectedRadioVal = selectedRadioElement ? parseFloat(selectedRadioElement.value) : 0;
+            const selectedRadioVal = selectedRadioElement ? parseFloat(selectedRadioElement.value) : 0.02;
             const selectedSymbol = latestInputValue; // Use the latest input value        
             let calcOut = await calcOutput(inputVal, selectedSymbol);
             output.value = Math.floor((calcOut) * DECIMAL) / DECIMAL;
@@ -1639,7 +1637,7 @@ $(window).bind("load", async function  () {
 
             const radioGroup = document.getElementsByName('my-radio-group');
             radioGroup.forEach(radio => {
-                radio.checked = false;
+                radio.checked = radio.value === "0.02";
             });
 
             $("#expectedfee").val("0.000");
@@ -1725,7 +1723,7 @@ $(window).bind("load", async function  () {
             async function updateSlipageQty() {
                 const inputVal = parseFloat(input.value) || 0;
                 const selectedRadioElement = document.querySelector('input[name="my-radio-group"]:checked');
-                const selectedRadioVal = selectedRadioElement ? parseFloat(selectedRadioElement.value) : 0;
+                const selectedRadioVal = selectedRadioElement ? parseFloat(selectedRadioElement.value) : 0.02;
                 const selectedSymbol = inputElement.value;
                 
                 let calcOut = await calcOutput(inputVal, selectedSymbol);
@@ -2125,7 +2123,7 @@ async function getSelectedEngEndpoint() {
     } 
     else 
     {
-      return "https://engine.rishipanthee.com";
+      return "https://enginerpc.com";
     }
 };
 
