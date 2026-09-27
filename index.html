@@ -247,6 +247,10 @@
                         </div>
                     </div>
                     <div class="card-body-custom">
+                        <!-- Shown when the operator has paused the bridge, or when
+                             bridge liquidity is under MINIMUM_LIQUIDITY -->
+                        <div id="swapBlockedNotice" class="swap-blocked-notice d-none"></div>
+
                         <!-- From Token -->
                         <div class="swap-input-container">
                             <label class="swap-label">You Send</label>
@@ -580,11 +584,11 @@
                 <div class="footer-nodes">
                     <div class="node-selector">
                         <span>Hive API:</span>
-                        <button id="popup-button-hive" class="node-btn">https://anyx.io</button>
+                        <button id="popup-button-hive" class="node-btn">https://api.deathwing.me</button>
                     </div>
                     <div class="node-selector">
                         <span>Engine API:</span>
-                        <button id="popup-button-engine" class="node-btn">https://engine.rishipanthee.com</button>
+                        <button id="popup-button-engine" class="node-btn">https://api.primersion.com</button>
                     </div>
                 </div>
             </div>

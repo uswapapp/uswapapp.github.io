@@ -331,8 +331,16 @@ const UIManager = (function() {
     }
 
     /**
-     * Show app versions in the footer. The backend value prefers whatever the
-     * bridge publishes in fee.json, falling back to CONFIG.BACKEND_VERSION.
+     * Show app versions in the footer.
+     *
+     * Frontend: always CONFIG.FRONTEND_VERSION - this build is what is running.
+     * Backend: resolved by SwapManager, which prefers a version published in
+     * fee.json and falls back to CONFIG.BACKEND_VERSION. The tooltip names the
+     * source that actually won, so a fallback is never mistaken for live data.
+     *
+     * Called on init and again after every fee.json fetch (see
+     * SwapManager.refreshVersionDisplay), so a version that changes mid-session
+     * is reflected without a reload.
      */
     function updateVersions() {
         const frontendEl = document.getElementById("frontendVersion");
@@ -340,13 +348,18 @@ const UIManager = (function() {
 
         if (frontendEl) {
             frontendEl.textContent = CONFIG.FRONTEND_VERSION;
+            frontendEl.title = "From config.js (FRONTEND_VERSION)";
         }
         if (backendEl) {
-            const live = SwapManager.getBackendVersion();
-            backendEl.textContent = live || CONFIG.BACKEND_VERSION;
-            backendEl.title = live
-                ? "Reported live by the bridge"
-                : "Last known version - the bridge does not publish one in fee.json";
+            const resolved = SwapManager.getBackendVersion();
+            const source = SwapManager.getBackendVersionSource
+                ? SwapManager.getBackendVersionSource()
+                : null;
+
+            backendEl.textContent = resolved || CONFIG.BACKEND_VERSION || "-";
+            backendEl.title = source === "fee.json"
+                ? "Reported live by the bridge in fee.json"
+                : "From config.js (BACKEND_VERSION) - fee.json did not publish a version";
         }
     }
 
@@ -381,6 +394,24 @@ const UIManager = (function() {
         // <head> already set data-theme before first paint; just sync the buttons.
         const current = document.documentElement.getAttribute("data-theme") || "dark";
         updateThemeButtons(current);
+    }
+
+    /**
+     * Show or clear the banner that explains why swapping is blocked
+     * (operator kill switch, or liquidity below the minimum).
+     * Pass null to clear it.
+     */
+    function setSwapBlocked(message) {
+        const el = document.getElementById("swapBlockedNotice");
+        if (!el) return;
+
+        if (message) {
+            el.textContent = message;
+            el.classList.remove("d-none");
+        } else {
+            el.textContent = "";
+            el.classList.add("d-none");
+        }
     }
 
     /**
@@ -1038,6 +1069,7 @@ const UIManager = (function() {
         updateSwapHistory,
         updateBridgeHistory,
         updateVersions,
+        setSwapBlocked,
         setTheme
     };
 })();

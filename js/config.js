@@ -8,9 +8,10 @@ const CONFIG = {
     // FRONTEND_VERSION is the source of truth for this app: it is shown in the
     // footer and drives the service worker cache name (see sw.js), so bumping
     // it is what actually pushes a new build out to returning visitors.
-    FRONTEND_VERSION: "2.1.0",
-    // Fallback only. The live value is read from fee.json when the backend
-    // publishes one, so this cannot silently drift out of date.
+    FRONTEND_VERSION: "2.1.2",
+    // Fallback only: used when fee.json does not publish a version. fee.json
+    // currently publishes none, so this IS what the footer shows - keep it in
+    // step with the deployed backend script.
     BACKEND_VERSION: "1.6.5",
 
     // Fee Configuration
@@ -20,46 +21,56 @@ const CONFIG = {
     DIFF_COEFFICIENT: 0.00575,
     BASE_PRICE_HIVE_TO_SHIVE: 1.00,
     
-    // Pool Configuration
-    HIVEPOOL: 24900,
-    SHIVEPOOL: 24900,
+    // Bridge Configuration
+    //
+    // MINIMUM_LIQUIDITY: the bridge must hold at least this much combined
+    // liquidity (HIVE + SWAP.HIVE) before swaps are allowed. fee.json
+    // publishes this value; the number here is the fallback used when that
+    // endpoint is unreachable. It also seeds the pool figures used for fee
+    // estimation (split evenly) until the real @uswap balances load, which
+    // is why the old hardcoded HIVEPOOL/SHIVEPOOL pair is no longer needed.
+    MINIMUM_LIQUIDITY: 48000,
+
+    // IS_STOPPED: operator kill switch. fee.json publishes this; the value
+    // here is the fallback when that endpoint is unreachable. It fails OPEN
+    // so a transient outage of fee.json does not take the bridge offline for
+    // everyone - the live value from fee.json is what actually pauses swaps.
+    IS_STOPPED: false,
+
     BRIDGE_USER: "uswap",
     
     // API URLs
     COINGECKO_HIVE_URL: "https://api.coingecko.com/api/v3/simple/price?ids=hive&vs_currencies=usd",
     COINGECKO_HBD_URL: "https://api.coingecko.com/api/v3/simple/price?ids=hive_dollar&vs_currencies=usd",
     USWAP_FEE_JSON: "https://fee.uswap.app/fee.json",
-    
-    // Hive RPC Nodes
+    // Hive RPC Nodes - verified working 2026-09-27, fastest first.
+    // Dead nodes removed: anyx.io (502), rpc.ausbit.dev (521), hived.emre.sh
+    // (refused), hive-api.arcange.eu (timeout), rpc.ecency.com (DNS gone),
+    // api.hive.blue (reset), hive.roelandp.nl (flaky, 2/5).
     HIVE_RPC_NODES: [
-        "https://api.deathwing.me",
-        "https://hive.roelandp.nl",
-        "https://api.openhive.network",
-        "https://rpc.ausbit.dev",
-        "https://hived.emre.sh",
-        "https://hive-api.arcange.eu",
-        "https://api.hive.blog",
-        "https://api.c0ff33a.uk",
-        "https://rpc.ecency.com",
-        "https://anyx.io",
-        "https://techcoderx.com",
-        "https://api.hive.blue",
-        "https://rpc.mahdiyari.info"
+        "https://api.deathwing.me",  // 470ms
+        "https://techcoderx.com",  // 636ms
+        "https://api.hive.blog",  // 848ms
+        "https://api.openhive.network",  // 918ms
+        "https://api.c0ff33a.uk",  // 1027ms
+        "https://rpc.mahdiyari.info"  // 1057ms
     ],
-    
-    // Hive Engine RPC Nodes
+
+    // Hive Engine RPC Nodes - verified working 2026-09-27, fastest first.
+    // Each was checked on BOTH endpoints the app uses (/contracts and
+    // /blockchain). Removed: engine.rishipanthee.com (DNS no longer resolves).
     ENGINE_RPC_NODES: [
-        "https://api.primersion.com",
-        "https://api2.hive-engine.com/rpc",
-        "https://enginerpc.com",
-        "https://api.hive-engine.com/rpc",
-        "https://herpc.actifit.io",
-        "https://herpc.dtools.dev"
+        "https://api.primersion.com",  // 568ms
+        "https://enginerpc.com",  // 624ms
+        "https://herpc.actifit.io",  // 625ms
+        "https://herpc.dtools.dev",  // 642ms
+        "https://api2.hive-engine.com/rpc",  // 655ms
+        "https://api.hive-engine.com/rpc"  // 732ms
     ],
     
     // Default Endpoints
-    DEFAULT_HIVE_ENDPOINT: "https://anyx.io",
-    DEFAULT_ENGINE_ENDPOINT: "https://enginerpc.com",
+    DEFAULT_HIVE_ENDPOINT: "https://api.deathwing.me",
+    DEFAULT_ENGINE_ENDPOINT: "https://api.primersion.com",
 
     // Minimum Swap Amount
     MINIMUM_SWAP: 1,

@@ -11,17 +11,58 @@ const APIManager = (function() {
     /**
      * Get selected Hive endpoint from localStorage or default
      */
+    /**
+     * Resolve a saved endpoint, discarding it if it is no longer a node we
+     * know about.
+     *
+     * Nodes die between visits - anyx.io (502) and engine.rishipanthee.com
+     * (DNS gone) both did. Without this check a returning visitor keeps
+     * starting every session on a dead node that has since been removed from
+     * the shipped list. That matters most for Hive Engine, which has no
+     * automatic failover (tryWithFailover only covers Hive), so a dead saved
+     * Engine node breaks balances, liquidity and swap verification outright.
+     *
+     * A node the user added themselves is always kept.
+     */
+    function resolveEndpoint(storageKey, customKey, knownNodes, fallback) {
+        const saved = localStorage.getItem(storageKey);
+        if (!saved) return fallback;
+
+        let custom = [];
+        try {
+            custom = JSON.parse(localStorage.getItem(customKey) || '[]');
+        } catch (error) {
+            custom = [];
+        }
+
+        if (knownNodes.indexOf(saved) !== -1 || custom.indexOf(saved) !== -1) {
+            return saved;
+        }
+
+        console.warn('Saved endpoint ' + saved + ' is no longer a known node - falling back to ' + fallback);
+        try {
+            localStorage.setItem(storageKey, fallback);
+        } catch (error) {
+            /* storage unavailable - still use the fallback for this session */
+        }
+        return fallback;
+    }
+
     async function getSelectedEndpoint() {
-        const saved = localStorage.getItem("selectedEndpoint");
-        return saved || CONFIG.DEFAULT_HIVE_ENDPOINT;
+        return resolveEndpoint(
+            'selectedEndpoint', 'customHiveNodes',
+            CONFIG.HIVE_RPC_NODES, CONFIG.DEFAULT_HIVE_ENDPOINT
+        );
     }
 
     /**
      * Get selected Engine endpoint from localStorage or default
      */
     async function getSelectedEngEndpoint() {
-        const saved = localStorage.getItem("selectedEngEndpoint");
-        return saved || CONFIG.DEFAULT_ENGINE_ENDPOINT;
+        return resolveEndpoint(
+            'selectedEngEndpoint', 'customEngineNodes',
+            CONFIG.ENGINE_RPC_NODES, CONFIG.DEFAULT_ENGINE_ENDPOINT
+        );
     }
 
     /**

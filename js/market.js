@@ -169,14 +169,12 @@ const MarketManager = (function() {
             // Update HIVE liquidity
             if (accounts && accounts.length > 0) {
                 liquidity.hive = Utils.parseNumber(accounts[0].balance, 0);
-                CONFIG.HIVEPOOL = liquidity.hive;  // Update pool for fee calculation
                 UIManager.updateLiquidity("hiveliquidity", liquidity.hive);
             }
 
             // Update SWAP.HIVE liquidity
             if (tokens && tokens.length > 0) {
                 liquidity.swapHive = Utils.parseNumber(tokens[0].balance, 0);
-                CONFIG.SHIVEPOOL = liquidity.swapHive;  // Update pool for fee calculation
                 UIManager.updateLiquidity("swaphiveliquidity", liquidity.swapHive);
             }
 

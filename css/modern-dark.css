@@ -1,10 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 /* Fix HBD Swap button text/icon alignment */
 .navbar .btn-outline-primary {
     display: inline-flex;
     align-items: center;
     white-space: nowrap;
 }
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* ========================================
    ROOT VARIABLES
@@ -151,7 +151,7 @@ body {
 /* Bootstrap scopes this to >=992px; the unscoped override was forcing nowrap on
    phones too, so the theme/HBD controls shot off the right edge (66px of
    horizontal scroll at 360px wide). Scoped back to desktop. */
-@media (min-width: 992px) {
+@media (min-width: 1200px) {
     .navbar-expand-lg {
         flex-flow: row nowrap;
         justify-content: flex-start;
@@ -575,6 +575,20 @@ body {
 .minimum-badge span {
     color: var(--primary-color);
     font-weight: 600;
+}
+
+/* Banner shown when swapping is blocked (operator pause, or bridge
+   liquidity under the configured minimum) */
+.swap-blocked-notice {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid var(--danger-color);
+    border-radius: var(--border-radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 0.75rem;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--danger-color);
+    text-align: center;
 }
 
 .swap-input-container {
@@ -1864,17 +1878,38 @@ body {
    Placed after the short-viewport rules above so it wins on phones held in
    landscape (where both a small width and a short height apply).
    ======================================== */
-@media (max-width: 991px) {
-    /* Navbar wraps to two rows instead of overflowing off-screen, with the
-       brand staying in the left corner */
+@media (max-width: 1199px) {
+    /* Three cramped columns (256px each at ~1030px) read far worse than one
+       clear column, so the 3-column layout is reserved for >=1200px. Below
+       that the columns stack, and the content is capped and centred rather
+       than stretching a single card across a ~960px tablet. */
+    .main-container {
+        max-width: 860px;
+    }
+
+    .row.g-2 > [class*="col-"] {
+        flex: 0 0 100%;
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .navbar-expand-lg {
+        flex-wrap: wrap;
+    }
+
+    /* Header centres on phones and tablets: the brand takes the full row and
+       the theme/HBD controls centre on the row beneath it. Wider screens keep
+       the brand in the left corner with the controls pushed right. */
     .navbar .container-fluid {
         flex-wrap: wrap;
-        justify-content: flex-start;
+        justify-content: center;
         row-gap: 0.5rem;
     }
 
     .navbar-brand {
         margin-right: 0;
+        width: 100%;
+        justify-content: center;
     }
 
     .navbar .d-flex.ms-auto {
@@ -1897,16 +1932,35 @@ body {
         min-width: 520px;
     }
 
+    /* Footer centres to match the header. NOTE: the earlier max-width:991px
+       block sets flex-direction: column + align-items: flex-start, so
+       align-items MUST be overridden here - on a column flex the
+       justify-content below controls the vertical axis, not the horizontal. */
     .footer-content {
+        flex-direction: column;
+        align-items: center;
         justify-content: center;
         text-align: center;
     }
 
+    .footer-nodes {
+        align-items: center;
+        justify-content: center;
+    }
+
+    .node-selector,
+    .footer-versions {
+        justify-content: center;
+    }
+
     .node-btn {
+        /* Wrap rather than clip - the ellipsis version cut the endpoint
+           short ("...rishipanthee" with the .com missing) because
+           max-width:100% resolves against a shrink-to-fit flex parent. */
         max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        white-space: normal;
+        word-break: break-all;
+        text-align: center;
     }
 
     /* Tap targets. Duplicated from the `pointer: coarse` block below on purpose:

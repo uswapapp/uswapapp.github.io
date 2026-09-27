@@ -4,15 +4,172 @@
  */
 
 const SwapManager = (function() {
+    // ---------------------------------------------------------------------
+    // Settings resolution: fee.json is the reference, config.js is the
+    // fallback. A field is taken from fee.json only when that endpoint
+    // answers AND actually publishes a usable value for it. Otherwise the
+    // config.js value applies.
+    //
+    // FALLBACK is captured once at load and frozen, and every fetch falls
+    // back to THIS - never to whatever fee.json last happened to serve.
+    // fetchFeeConfig re-runs before every swap, so without a pristine
+    // baseline a field the operator removes from fee.json would stick at its
+    // old live value instead of returning to the config.js default.
+    // ---------------------------------------------------------------------
+    const FALLBACK = Object.freeze({
+        BASE_FEE: Utils.parseNumber(CONFIG.BASE_FEE, 0),
+        MIN_BASE_FEE: Utils.parseNumber(CONFIG.MIN_BASE_FEE, 0),
+        DIFF_COEFFICIENT: Utils.parseNumber(CONFIG.DIFF_COEFFICIENT, 0),
+        BASE_PRICE_HIVE_TO_SHIVE: Utils.parseNumber(CONFIG.BASE_PRICE_HIVE_TO_SHIVE, 1),
+        MINIMUM_LIQUIDITY: Utils.parseNumber(CONFIG.MINIMUM_LIQUIDITY, 0),
+        IS_STOPPED: CONFIG.IS_STOPPED === true,
+        BACKEND_VERSION: CONFIG.BACKEND_VERSION || null
+    });
+
+    /**
+     * True when fee.json said nothing usable about a field, so config.js wins.
+     * Absent, null, or empty string all count as "not mentioned".
+     */
+    function notMentioned(value) {
+        return value === undefined || value === null || value === "";
+    }
+
+    /**
+     * A number published by fee.json, else the config.js fallback.
+     * Zero is a legitimate published value (e.g. a zero fee) and is kept;
+     * only unparseable values fall through.
+     */
+    function pickNumber(published, fallback) {
+        if (notMentioned(published)) return fallback;
+        const n = parseFloat(published);
+        return isFinite(n) ? n : fallback;
+    }
+
+    /**
+     * Same, but for a field where zero or negative is meaningless and would
+     * corrupt the maths - BASE_PRICE_HIVE_TO_SHIVE is inverted for the
+     * SWAP.HIVE -> HIVE direction, so a published 0 would yield Infinity.
+     */
+    function pickPositiveNumber(published, fallback) {
+        const n = pickNumber(published, fallback);
+        return n > 0 ? n : fallback;
+    }
+
+    /**
+     * A boolean published by fee.json, else the config.js fallback. Accepts
+     * the usual JSON spellings; anything unrecognisable is treated as not
+     * mentioned so config.js decides rather than a garbled value.
+     */
+    function pickFlag(published, fallback) {
+        if (notMentioned(published)) return fallback;
+        if (published === true || published === false) return published;
+        if (typeof published === "number") {
+            if (published === 1) return true;
+            if (published === 0) return false;
+            return fallback;
+        }
+        if (typeof published === "string") {
+            const s = published.trim().toLowerCase();
+            if (s === "true" || s === "1" || s === "yes") return true;
+            if (s === "false" || s === "0" || s === "no") return false;
+        }
+        return fallback;
+    }
+
     let feeConfig = {
-        BASE_FEE: CONFIG.BASE_FEE,
-        MIN_BASE_FEE: CONFIG.MIN_BASE_FEE,
-        DIFF_COEFFICIENT: CONFIG.DIFF_COEFFICIENT,
-        BASE_PRICE_HIVE_TO_SHIVE: CONFIG.BASE_PRICE_HIVE_TO_SHIVE
+        BASE_FEE: FALLBACK.BASE_FEE,
+        MIN_BASE_FEE: FALLBACK.MIN_BASE_FEE,
+        DIFF_COEFFICIENT: FALLBACK.DIFF_COEFFICIENT,
+        BASE_PRICE_HIVE_TO_SHIVE: FALLBACK.BASE_PRICE_HIVE_TO_SHIVE
     };
 
-    // Live backend script version, if fee.json publishes one (see fetchFeeConfig)
-    let backendVersion = null;
+    // Backend script version - replaced when fee.json publishes one.
+    // backendVersionSource records WHICH source won, so the footer tooltip can
+    // tell the truth instead of claiming every value came from the bridge.
+    let backendVersion = FALLBACK.BACKEND_VERSION;
+    let backendVersionSource = "config.js";
+
+    // Operator controls, refreshed from fee.json (see fetchFeeConfig).
+    let bridgeStopped = FALLBACK.IS_STOPPED;
+    let minimumLiquidity = FALLBACK.MINIMUM_LIQUIDITY;
+
+    /**
+     * Reset every fee.json-backed setting to its config.js value. Used when
+     * fee.json is unreachable, so a stale value the endpoint served earlier
+     * in the session cannot outlive it.
+     */
+    function applyFallbackConfig() {
+        feeConfig.BASE_FEE = FALLBACK.BASE_FEE;
+        feeConfig.MIN_BASE_FEE = FALLBACK.MIN_BASE_FEE;
+        feeConfig.DIFF_COEFFICIENT = FALLBACK.DIFF_COEFFICIENT;
+        feeConfig.BASE_PRICE_HIVE_TO_SHIVE = FALLBACK.BASE_PRICE_HIVE_TO_SHIVE;
+        minimumLiquidity = FALLBACK.MINIMUM_LIQUIDITY;
+        bridgeStopped = FALLBACK.IS_STOPPED;
+        backendVersion = FALLBACK.BACKEND_VERSION;
+        backendVersionSource = "config.js";
+    }
+
+    /**
+     * Warn when a value fee.json publishes disagrees with the config.js
+     * fallback for the same setting.
+     *
+     * config.js is what the app falls back to if fee.json is ever unreachable,
+     * so drift between the two is invisible until an outage - at which point
+     * the app would quote last year's numbers with no warning. This surfaces it
+     * on every load instead. Diagnostic only: it changes nothing about a swap.
+     *
+     * IS_STOPPED is deliberately excluded. Pausing the bridge is done in
+     * fee.json while config.js stays false, so a difference there is the
+     * intended arrangement rather than drift.
+     */
+    function warnOnConfigDrift(data) {
+        const drift = [];
+
+        function compare(key, rawValue, resolvedValue, fallbackValue) {
+            // Not published means config.js is already in charge - nothing to
+            // compare. A garbled value resolves to the fallback, so it also
+            // compares equal and stays quiet.
+            if (notMentioned(rawValue)) return;
+            if (resolvedValue !== fallbackValue) {
+                drift.push("  " + key + ": fee.json=" + resolvedValue +
+                    "  config.js=" + fallbackValue);
+            }
+        }
+
+        compare("BASE_FEE", data.BASE_FEE, feeConfig.BASE_FEE, FALLBACK.BASE_FEE);
+        compare("MIN_BASE_FEE", data.MIN_BASE_FEE, feeConfig.MIN_BASE_FEE, FALLBACK.MIN_BASE_FEE);
+        compare("DIFF_COEFFICIENT", data.DIFF_COEFFICIENT,
+            feeConfig.DIFF_COEFFICIENT, FALLBACK.DIFF_COEFFICIENT);
+        compare("BASE_PRICE_HIVE_TO_SHIVE", data.BASE_PRICE_HIVE_TO_SHIVE,
+            feeConfig.BASE_PRICE_HIVE_TO_SHIVE, FALLBACK.BASE_PRICE_HIVE_TO_SHIVE);
+        compare("MINIMUM_LIQUIDITY", data.MINIMUM_LIQUIDITY,
+            minimumLiquidity, FALLBACK.MINIMUM_LIQUIDITY);
+
+        const rawVersion = data.VERSION || data.SCRIPT_VERSION || data.BACKEND_VERSION;
+        compare("BACKEND_VERSION", rawVersion, backendVersion, FALLBACK.BACKEND_VERSION);
+
+        if (drift.length > 0) {
+            console.warn(
+                "config.js is out of step with fee.json on " + drift.length +
+                " setting(s). fee.json is in use now, but these config.js values " +
+                "are what the app would fall back to if fee.json became " +
+                "unreachable - update js/config.js to match:\n" + drift.join("\n")
+            );
+        }
+        return drift;
+    }
+
+    /**
+     * Push the resolved versions into the footer. fetchFeeConfig runs again
+     * before every swap, so without this the footer would keep showing the
+     * version that happened to be live when the page first loaded.
+     * Guarded because the first fetch happens before UIManager.initialize().
+     */
+    function refreshVersionDisplay() {
+        if (typeof UIManager !== "undefined" && UIManager.updateVersions) {
+            UIManager.updateVersions();
+        }
+    }
 
     let currentSwap = {
         from: "HIVE",
@@ -494,33 +651,72 @@ const SwapManager = (function() {
      */
     async function fetchFeeConfig() {
         try {
-            const response = await Utils.withTimeout(
-                axios.get(CONFIG.USWAP_FEE_JSON),
-                5000
+            // Retry with a longer timeout: a cold DNS/TLS connect can exceed 5s,
+            // and on failure the app falls back to the config.js constants.
+            // That is harmless only while they match the server; if the
+            // operator changes fees, a timed-out fetch would make the UI quote
+            // and send the wrong minimum-receive memo. Keep config.js in step
+            // with fee.json so a fallback is never a surprise.
+            const response = await Utils.retry(
+                () => Utils.withTimeout(axios.get(CONFIG.USWAP_FEE_JSON), 8000),
+                2, 1000
             );
             
-            if (response.data) {
-                feeConfig.BASE_FEE = Utils.parseNumber(response.data.BASE_FEE, feeConfig.BASE_FEE);
-                feeConfig.MIN_BASE_FEE = Utils.parseNumber(response.data.MIN_BASE_FEE, feeConfig.MIN_BASE_FEE);
-                feeConfig.DIFF_COEFFICIENT = Utils.parseNumber(response.data.DIFF_COEFFICIENT, feeConfig.DIFF_COEFFICIENT);
-                feeConfig.BASE_PRICE_HIVE_TO_SHIVE = Utils.parseNumber(response.data.BASE_PRICE_HIVE_TO_SHIVE, feeConfig.BASE_PRICE_HIVE_TO_SHIVE);
-
-                // Prefer a version published by the bridge itself so the footer
-                // reflects reality rather than a value hardcoded at build time.
-                // Accepts a few likely key names; falls back to CONFIG.BACKEND_VERSION.
-                const published = response.data.VERSION
-                    || response.data.SCRIPT_VERSION
-                    || response.data.BACKEND_VERSION;
-                if (published) {
-                    backendVersion = String(published);
-                    console.log("Backend script version (live):", backendVersion);
-                }
-
-                console.log("Fee config loaded:", feeConfig);
+            // An answer with no body tells us nothing, so treat it as a miss
+            // and let config.js apply rather than keeping stale values.
+            if (!response || !response.data || typeof response.data !== "object") {
+                throw new Utils.APIError("fee.json returned no usable data");
             }
+
+            const data = response.data;
+
+            // Each field: fee.json when it publishes a usable value, else
+            // config.js. Never the previous fetch's value - see FALLBACK.
+            feeConfig.BASE_FEE = pickNumber(data.BASE_FEE, FALLBACK.BASE_FEE);
+            feeConfig.MIN_BASE_FEE = pickNumber(data.MIN_BASE_FEE, FALLBACK.MIN_BASE_FEE);
+            feeConfig.DIFF_COEFFICIENT = pickNumber(data.DIFF_COEFFICIENT, FALLBACK.DIFF_COEFFICIENT);
+            feeConfig.BASE_PRICE_HIVE_TO_SHIVE = pickPositiveNumber(
+                data.BASE_PRICE_HIVE_TO_SHIVE, FALLBACK.BASE_PRICE_HIVE_TO_SHIVE
+            );
+
+            // Minimum combined liquidity required to allow swaps
+            minimumLiquidity = pickNumber(data.MINIMUM_LIQUIDITY, FALLBACK.MINIMUM_LIQUIDITY);
+
+            // Operator kill switch
+            bridgeStopped = pickFlag(data.IS_STOPPED, FALLBACK.IS_STOPPED);
+
+            // Prefer a version published by the bridge itself so the footer
+            // reflects reality rather than a value hardcoded at build time.
+            // Accepts a few likely key names.
+            const publishedVersion = data.VERSION || data.SCRIPT_VERSION || data.BACKEND_VERSION;
+            if (notMentioned(publishedVersion)) {
+                backendVersion = FALLBACK.BACKEND_VERSION;
+                backendVersionSource = "config.js";
+            } else {
+                backendVersion = String(publishedVersion);
+                backendVersionSource = "fee.json";
+            }
+
+            console.log("Fee config loaded from fee.json:", feeConfig,
+                "| stopped:", bridgeStopped,
+                "| minLiquidity:", minimumLiquidity,
+                "| backend:", backendVersion, "(" + backendVersionSource + ")");
+
+            // Surface any disagreement between fee.json and the config.js
+            // fallback, so drift is found now rather than during an outage.
+            warnOnConfigDrift(data);
+
+            refreshVersionDisplay();
         } catch (error) {
+            // fee.json unreachable or unusable - fall back to config.js in
+            // full, so nothing it served earlier in this session survives.
+            applyFallbackConfig();
             const handled = Utils.handleError(error, 'SwapManager.fetchFeeConfig');
             console.error(handled.message);
+            console.warn("fee.json unavailable - using config.js values:", feeConfig,
+                "| stopped:", bridgeStopped,
+                "| minLiquidity:", minimumLiquidity);
+            refreshVersionDisplay();
         }
     }
 
@@ -533,9 +729,16 @@ const SwapManager = (function() {
             return { feeAmount: 0, feePercent: 0 };
         }
 
-        // Get pool liquidity amounts
-        const fromPool = fromToken === "HIVE" ? CONFIG.HIVEPOOL : CONFIG.SHIVEPOOL;
-        const totalPool = CONFIG.HIVEPOOL + CONFIG.SHIVEPOOL;
+        // Pool sizes drive the fee curve. Use the real @uswap balances once
+        // MarketManager has them; until then fall back to an even split of
+        // MINIMUM_LIQUIDITY rather than a separate hardcoded pair.
+        const liq = MarketManager.getLiquidity();
+        const seed = Utils.parseNumber(minimumLiquidity, 0) / 2;
+        const hivePool = liq.hive > 0 ? liq.hive : seed;
+        const shivePool = liq.swapHive > 0 ? liq.swapHive : seed;
+
+        const fromPool = fromToken === "HIVE" ? hivePool : shivePool;
+        const totalPool = hivePool + shivePool;
         
         // Calculate pool difference ratio
         const diff = ((amount * 0.5 + fromPool) / totalPool) - 0.5;
@@ -672,6 +875,30 @@ const SwapManager = (function() {
         const amount = inputAmount !== null ? inputAmount : currentSwap.amount;
         const fromToken = inputFrom || currentSwap.from;
         const toToken = inputTo || currentSwap.to;
+
+        // Operator has paused the bridge - block swaps outright
+        if (bridgeStopped) {
+            UIManager.setSwapBlocked(
+                "Swaps are paused by the bridge operator. Please try again later."
+            );
+            UIManager.disableSwapButton();
+            return false;
+        }
+
+        // Bridge must hold enough combined liquidity to operate
+        const pooled = MarketManager.getLiquidity();
+        const totalLiquidity = Utils.parseNumber(pooled.hive, 0) + Utils.parseNumber(pooled.swapHive, 0);
+        if (minimumLiquidity > 0 && totalLiquidity > 0 && totalLiquidity < minimumLiquidity) {
+            UIManager.setSwapBlocked(
+                "Bridge liquidity (" + Utils.formatNumber(totalLiquidity, 3) +
+                ") is below the " + Utils.formatNumber(minimumLiquidity, 0) +
+                " minimum, so swaps are paused."
+            );
+            UIManager.disableSwapButton();
+            return false;
+        }
+
+        UIManager.setSwapBlocked(null);
         
         // Check if amount is valid and positive
         if (!amount || !Utils.isPositiveNumber(amount) || amount <= 0) {
@@ -836,6 +1063,18 @@ const SwapManager = (function() {
      */
     async function executeSwap() {
         try {
+            // Re-read the operator controls immediately before submitting. The
+            // page may have been open for a long time, and sending funds into a
+            // bridge that has since been paused is exactly what IS_STOPPED is
+            // meant to prevent. Also refreshes fees so the memo is computed
+            // from current values.
+            await fetchFeeConfig();
+            if (bridgeStopped) {
+                throw new Utils.ValidationError(
+                    "Swaps are paused by the bridge operator. Nothing was sent."
+                );
+            }
+
             // Validate swap
             validateSwap();
 
@@ -956,6 +1195,9 @@ const SwapManager = (function() {
         validateButton: validateSwapButton,
         loadSwapHistory,
         setNoMinimum,
-        getBackendVersion: () => backendVersion
+        getBackendVersion: () => backendVersion,
+        getBackendVersionSource: () => backendVersionSource,
+        isBridgeStopped: () => bridgeStopped,
+        getMinimumLiquidity: () => minimumLiquidity
     };
 })();
