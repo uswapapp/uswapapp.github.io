@@ -8,7 +8,7 @@ const CONFIG = {
     // FRONTEND_VERSION is the source of truth for this app: it is shown in the
     // footer and drives the service worker cache name (see sw.js), so bumping
     // it is what actually pushes a new build out to returning visitors.
-    FRONTEND_VERSION: "2.1.2",
+    FRONTEND_VERSION: "2.1.3",
     // Fallback only: used when fee.json does not publish a version. fee.json
     // currently publishes none, so this IS what the footer shows - keep it in
     // step with the deployed backend script.
@@ -82,6 +82,18 @@ const CONFIG = {
     SWAP_VERIFY_INITIAL_DELAY: 8000,   // let the chain settle before looking
     SWAP_VERIFY_INTERVAL: 8000,        // gap between checks
     SWAP_VERIFY_TIMEOUT: 180000,       // give up after 3 minutes (stays pending)
+
+    // How far back to page through @uswap's account history when looking for
+    // the bridge's reply to a swap. The newest 100 ops are searched first;
+    // only if the reply is not there does it page back PAGE_SIZE ops at a
+    // time, stopping at the first page with a match, once ops are older than
+    // the swap, or after MAX_PAGES. Pages already read are cached (history is
+    // append-only), so a deep scan is paid for once per page load.
+    BRIDGE_HISTORY_PAGE_SIZE: 1000,    // hived's maximum per call
+    BRIDGE_HISTORY_MAX_PAGES: 10,      // up to 10,000 ops back
+    // Bridge ops are matched from a little before the swap was recorded, to
+    // absorb clock skew between this browser and the chain.
+    BRIDGE_HISTORY_SKEW_MS: 10 * 60 * 1000,
 
     // Hive Auth (HAS) Configuration - ported from uswapapp
     HIVE_AUTH_SERVER: "wss://hive-auth.arcange.eu",

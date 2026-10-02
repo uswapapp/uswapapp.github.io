@@ -273,6 +273,50 @@ const Utils = (function() {
         return date.toLocaleString();
     }
 
+    /**
+     * Escape a value for interpolation into HTML (text or attribute).
+     * Anything that came from the chain, a node, or localStorage goes through
+     * this before it reaches innerHTML.
+     */
+    function escapeHtml(value) {
+        if (value === null || value === undefined) return '';
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    /**
+     * Pull a transaction id out of a wallet/broadcast result.
+     *
+     * Keychain and Hive Auth have returned it in several shapes over time:
+     * a bare string, or an object carrying id / tx_id / transaction_id.
+     * Returns a string or null - never the raw object, which would otherwise
+     * be stored as the swap's txIdSent and break history matching/rendering.
+     */
+    function extractTxId(result) {
+        if (typeof result === 'string') {
+            return result.trim() || null;
+        }
+        if (result && typeof result === 'object') {
+            const candidate = result.id || result.tx_id || result.transaction_id ||
+                (result.result && extractTxId(result.result));
+            return typeof candidate === 'string' && candidate.trim() ? candidate.trim() : null;
+        }
+        return null;
+    }
+
+    /**
+     * Hive API timestamps are UTC without a timezone suffix
+     * ("2026-10-03T12:34:56"). Parse them as UTC, not local time.
+     */
+    function parseChainTime(time) {
+        if (!time) return NaN;
+        return new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(time) ? time : time + 'Z').getTime();
+    }
+
     // ==================== PUBLIC API ====================
 
     return {
@@ -307,6 +351,9 @@ const Utils = (function() {
         deepClone,
         isEmpty,
         formatNumber,
-        formatDate
+        formatDate,
+        escapeHtml,
+        extractTxId,
+        parseChainTime
     };
 })();

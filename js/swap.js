@@ -185,46 +185,220 @@ const SwapManager = (function() {
         noMinimum: false
     };
 
+    // ---------------------------------------------------------------------
+    // @uswap account history, paged and cached.
+    //
+    // The bridge's reply to a swap can be any number of ops back in @uswap's
+    // history - a fixed "last 100 ops" window (~20h of bridge activity)
+    // silently missed older replies, leaving those swaps "Pending" forever.
+    //
+    // Lookups are staged to keep API load low (see findBridgeOps):
+    //   1. search the newest 100 ops - covers every swap made today;
+    //   2. only if the reply is not there, page back 1000 ops at a time,
+    //      stopping as soon as it is found, once ops are older than the swap,
+    //      or at BRIDGE_HISTORY_MAX_PAGES.
+    //
+    // Account history is append-only: the op at a given index never changes,
+    // so pages already read are cached for the life of the page and only the
+    // newest ops are re-read. A deep scan for an old swap is paid once.
+    // ---------------------------------------------------------------------
+    const HISTORY_HEAD_PROBE = 100; // cheap refresh of the newest ops
+    const HISTORY_HEAD_TTL = 5000;  // reuse a head read this recent
+
+    let bridgeOps = [];             // [index, op] pairs, ascending by index
+    let bridgeHeadFetchedAt = 0;
+    let bridgeHistoryQueue = Promise.resolve();
+
+    function historyPageSize() {
+        return Math.max(1, Math.min(1000, Utils.parseNumber(CONFIG.BRIDGE_HISTORY_PAGE_SIZE, 1000)));
+    }
+
+    function historyMaxOps() {
+        return historyPageSize() * Math.max(1, Utils.parseNumber(CONFIG.BRIDGE_HISTORY_MAX_PAGES, 10));
+    }
+
+    async function fetchBridgePage(start, limit) {
+        const page = await APIManager.tryWithFailover(() =>
+            hive.api.getAccountHistoryAsync(CONFIG.BRIDGE_USER, start, limit)
+        );
+        return Array.isArray(page) ? page : [];
+    }
+
     /**
-     * Check uswap HIVE transfers for completion confirmation
+     * Bring the newest end of the cache up to date.
      */
-    async function checkUswapHiveTransfers(originalTxId, username) {
-        try {
-            const history = await APIManager.tryWithFailover(() => 
-                hive.api.getAccountHistoryAsync(CONFIG.BRIDGE_USER, -1, 100)
-            );
-                        
-            // Filter for direct transfers to our user
-            // Structure: [index, {trx_id, block, op: [type, data], timestamp, ...}]
-            const transfersToUser = history.filter((item) => {
-                const op = item[1]?.op;
-                return op && op[0] === 'transfer' && op[1].from === CONFIG.BRIDGE_USER && op[1].to === username;
-            });
-            
-            for (let i = transfersToUser.length - 1; i >= 0; i--) {
-                const item = transfersToUser[i];
-                const op = item[1].op;
-                const transferData = op[1];
-                const memo = transferData.memo || '';
-                const trxId = item[1].trx_id;
-                
-                if (memo.includes(originalTxId)) {
-                    // Parse memo to extract swap details
-                    const qtyMatch = memo.match(/Swapped Qty\s*:\s*([\d.]+)/);
-                    const priceMatch = memo.match(/Swapped Price\s*:\s*([\d.]+)/);
-                    
-                    return {
-                        found: true,
-                        amount: transferData.amount,
-                        txId: trxId,
-                        swappedQty: qtyMatch ? qtyMatch[1] : null,
-                        swappedPrice: priceMatch ? priceMatch[1] : null,
-                        memo: memo
-                    };
-                }
+    async function refreshBridgeHead() {
+        const newestKnown = bridgeOps.length ? bridgeOps[bridgeOps.length - 1][0] : null;
+
+        // Always start with the cheap 100-op read - including on a cold
+        // start. Deeper pages are only fetched when a lookup needs them.
+        let head = await fetchBridgePage(-1, HISTORY_HEAD_PROBE);
+
+        // More new ops than the probe covered - read a full page instead
+        if (newestKnown !== null && head.length && head[0][0] > newestKnown + 1) {
+            head = await fetchBridgePage(-1, historyPageSize());
+            if (head.length && head[0][0] > newestKnown + 1) {
+                // Still a gap between the cache and the head: start over
+                // rather than keep a cache with a hole in it.
+                bridgeOps = [];
             }
-            
-            return { found: false };
+        }
+
+        if (!bridgeOps.length) {
+            bridgeOps = head.slice();
+        } else {
+            const newest = bridgeOps[bridgeOps.length - 1][0];
+            bridgeOps = bridgeOps.concat(head.filter(item => item[0] > newest));
+        }
+
+        // Keep memory bounded on a long-lived tab. Trim only once we are a
+        // full page over the cap, and back down to exactly the cap: trimming
+        // on every new op would leave the cache just under the cap, and
+        // extendBridgeHistory would then re-read a whole 1000-op page each
+        // refresh to win back a handful of ops.
+        const maxOps = historyMaxOps();
+        if (bridgeOps.length > maxOps + historyPageSize()) {
+            bridgeOps = bridgeOps.slice(bridgeOps.length - maxOps);
+        }
+
+        bridgeHeadFetchedAt = Date.now();
+    }
+
+    /**
+     * Read ONE older page (1000 ops) onto the cache and return just the ops
+     * it added - or null when there is nothing more worth reading: the cache
+     * already reaches sinceMs, the start of the account, or the depth cap.
+     */
+    async function extendBridgeHistoryOnePage(sinceMs) {
+        if (!sinceMs || bridgeOps.length === 0) return null;
+        if (bridgeOps.length >= historyMaxOps()) return null;     // depth cap
+
+        const oldest = bridgeOps[0];
+        const oldestIndex = oldest[0];
+        const oldestTime = Utils.parseChainTime(oldest[1] && oldest[1].timestamp);
+
+        if (oldestIndex <= 0) return null;                        // whole history read
+        if (isFinite(oldestTime) && oldestTime < sinceMs) return null; // older than the swap
+
+        const start = oldestIndex - 1;
+        // hived requires start >= limit - 1
+        const limit = Math.min(historyPageSize(), start + 1);
+
+        let page;
+        try {
+            page = await fetchBridgePage(start, limit);
+        } catch (error) {
+            // Keep what we already have rather than failing the whole check
+            console.warn('Could not page further back in bridge history:', error.message);
+            return null;
+        }
+
+        const older = page.filter(item => item[0] < oldestIndex);
+        if (older.length === 0) return null; // node returned nothing new - stop
+        bridgeOps = older.concat(bridgeOps);
+        return older;
+    }
+
+    /**
+     * Find @uswap history ops matching `predicate`, newest first.
+     *
+     * Stage 1 searches what is cached - on a cold start, just the newest 100
+     * ops. Stage 2 runs only if nothing matched: it pages back 1000 ops at a
+     * time, searching each new page, and stops at the first page with a match.
+     * Calls are serialised so concurrent checks share one set of requests.
+     */
+    function findBridgeOps(predicate, sinceMs) {
+        const safe = (item) => {
+            try { return !!predicate(item); } catch (error) { return false; }
+        };
+
+        const run = bridgeHistoryQueue.then(async () => {
+            if (!bridgeOps.length || Date.now() - bridgeHeadFetchedAt > HISTORY_HEAD_TTL) {
+                await refreshBridgeHead();
+            }
+
+            let matches = bridgeOps.filter(safe);
+            while (matches.length === 0) {
+                const added = await extendBridgeHistoryOnePage(sinceMs);
+                if (!added) break;
+                matches = added.filter(safe);
+            }
+            return matches.reverse();
+        });
+        bridgeHistoryQueue = run.catch(() => {});
+        return run;
+    }
+
+    /**
+     * Earliest time a bridge reply to a swap recorded at `timestamp` could
+     * appear, allowing for clock skew between this browser and the chain.
+     */
+    function replySince(timestamp) {
+        const skew = Utils.parseNumber(CONFIG.BRIDGE_HISTORY_SKEW_MS, 10 * 60 * 1000);
+        return (timestamp || Date.now()) - skew;
+    }
+
+    /**
+     * Swap details the bridge writes into its reply memo, e.g.
+     * "Thank you for using our service! Swapped Qty : 40.000 &
+     *  Swapped Price : 0.997 & Tx : 1b5e1b02..."
+     */
+    function parseReplyMemo(memo) {
+        const qtyMatch = memo.match(/Swapped Qty\s*:\s*([\d.]+)/);
+        const priceMatch = memo.match(/Swapped Price\s*:\s*([\d.]+)/);
+        return {
+            swappedQty: qtyMatch ? qtyMatch[1] : null,
+            swappedPrice: priceMatch ? priceMatch[1] : null
+        };
+    }
+
+    /**
+     * Hive Engine payload of a custom_json op, if it is a single SWAP.HIVE
+     * token transfer from the bridge to `username`; otherwise null.
+     */
+    function bridgeEngineTransferTo(item, username) {
+        const op = item[1] && item[1].op;
+        if (!op || op[0] !== 'custom_json' || op[1].id !== 'ssc-mainnet-hive') return null;
+
+        const json = JSON.parse(op[1].json);
+        if (json && json.contractName === 'tokens' &&
+            json.contractAction === 'transfer' &&
+            json.contractPayload &&
+            json.contractPayload.to === username &&
+            json.contractPayload.symbol === 'SWAP.HIVE') {
+            return json.contractPayload;
+        }
+        return null;
+    }
+
+    /**
+     * Check uswap HIVE transfers for completion confirmation.
+     * HIVE is a Hive (L1) transfer, so L1 history is the final word here.
+     */
+    async function checkUswapHiveTransfers(originalTxId, username, sinceMs) {
+        try {
+            // Structure: [index, {trx_id, block, op: [type, data], timestamp, ...}]
+            const matches = await findBridgeOps((item) => {
+                const op = item[1] && item[1].op;
+                return op && op[0] === 'transfer' &&
+                    op[1].from === CONFIG.BRIDGE_USER &&
+                    op[1].to === username &&
+                    String(op[1].memo || '').includes(originalTxId);
+            }, sinceMs);
+
+            if (matches.length === 0) {
+                return { found: false };
+            }
+
+            const item = matches[0];
+            const transferData = item[1].op[1];
+            const memo = transferData.memo || '';
+            return Object.assign({
+                found: true,
+                amount: transferData.amount,
+                txId: item[1].trx_id,
+                memo: memo
+            }, parseReplyMemo(memo));
         } catch (error) {
             console.error('Error checking HIVE transfers:', error);
             return { found: false };
@@ -232,23 +406,28 @@ const SwapManager = (function() {
     }
 
     /**
-     * Confirm a SWAP.HIVE payout on the Hive-Engine SIDECHAIN itself.
+     * Confirm a SWAP.HIVE transfer on the Hive-Engine SIDECHAIN itself.
      *
-     * A `custom_json` op showing up in @uswap's Hive (L1) history only proves
-     * the bridge BROADCAST an instruction - Hive-Engine (L2) is a separate
-     * virtual machine that processes that instruction afterwards and can
-     * reject it (e.g. an insufficient-balance error) even though the L1
-     * broadcast succeeded. The "Valid" / "HE Block" fields shown on a
-     * hivehub.dev transaction page come from this same Engine record, not
-     * from Hive L1 - so that's what we check here, via the SAME node the rest
-     * of the app already talks to (APIManager.getSSC()).
+     * Every SWAP.HIVE leg of a swap is confirmed on Engine, in order:
+     *   1. what came IN  - the user's deposit to the bridge (confirmDepositOnHiveEngine)
+     *   2. what went OUT - the bridge's payout or refund   (confirmBridgeTransferOnHiveEngine)
+     *
+     * A `custom_json` op on Hive (L1) only proves someone BROADCAST an
+     * instruction - Hive-Engine (L2) is a separate virtual machine that
+     * processes it afterwards and can reject it (e.g. an insufficient-balance
+     * error) even though the L1 broadcast succeeded. The "Valid" / "HE Block"
+     * fields shown on a hivehub.dev transaction page come from this same
+     * Engine record - so that is the ground truth checked here, via the SAME
+     * node the rest of the app already talks to (APIManager.getSSC()).
      *
      * Returns:
-     *   { confirmed: true,  amount }                 - Engine applied the transfer
-     *   { confirmed: false, engineError }             - Engine explicitly rejected it
-     *   { confirmed: false }                          - not indexed by Engine yet (keep polling)
+     *   { confirmed: true,  amount }      - Engine applied the expected transfer
+     *   { confirmed: false, engineError } - Engine processed it and rejected it
+     *   { confirmed: false }              - not indexed by Engine yet (keep polling)
      */
-    async function confirmOnHiveEngine(trxId, expectedTo, expectedSymbol) {
+    async function confirmTransferOnHiveEngine(trxId, expectedFrom, expectedTo) {
+        const expectedSymbol = 'SWAP.HIVE';
+
         const ssc = APIManager.getSSC();
         if (!ssc) {
             // No Engine node available yet - treat as "not confirmed yet" so the
@@ -284,14 +463,20 @@ const SwapManager = (function() {
             ev.contract === 'tokens' &&
             ev.event === 'transfer' &&
             ev.data &&
+            ev.data.from === expectedFrom &&
             ev.data.to === expectedTo &&
             ev.data.symbol === expectedSymbol
         );
 
         if (!transferEvent) {
-            // Engine processed the transaction but not as the transfer we expected -
-            // don't confirm on the strength of the (unverified) L1 payload alone.
-            return { confirmed: false };
+            // Engine processed the transaction without error, but it did not
+            // move the expected tokens between the expected accounts - so it
+            // can never become the transfer we are waiting for.
+            return {
+                confirmed: false,
+                engineError: 'Hive-Engine processed the transaction but it did not transfer ' +
+                    expectedSymbol + ' from @' + expectedFrom + ' to @' + expectedTo
+            };
         }
 
         // Ground truth: what Engine actually applied, not what the L1 payload claimed
@@ -299,81 +484,71 @@ const SwapManager = (function() {
     }
 
     /**
-     * Check uswap SWAP.HIVE transfers for completion confirmation.
-     * A candidate match is only reported `found: true` once it is also
-     * confirmed on the Hive-Engine sidechain (see confirmOnHiveEngine above).
+     * Step 1 - what came IN: the user's SWAP.HIVE deposit to the bridge.
+     * The bridge only acts on deposits Hive-Engine accepted, so a deposit
+     * Engine rejected will never get a reply - better to say so at once than
+     * to leave the swap "Pending" forever.
      */
-    async function checkUswapEngineTransfers(originalTxId, username) {
+    function confirmDepositOnHiveEngine(txIdSent, username) {
+        return confirmTransferOnHiveEngine(txIdSent, username, CONFIG.BRIDGE_USER);
+    }
+
+    /**
+     * Step 2 - what went OUT: the bridge's SWAP.HIVE payout or refund.
+     */
+    function confirmBridgeTransferOnHiveEngine(trxId, username) {
+        return confirmTransferOnHiveEngine(trxId, CONFIG.BRIDGE_USER, username);
+    }
+    /**
+     * Check the SWAP.HIVE the bridge sent out (payout of a HIVE -> SWAP.HIVE
+     * swap, or refund of a SWAP.HIVE deposit).
+     * The bridge's custom_json is located through @uswap's L1 history (that
+     * is where its memo, carrying our tx id, lives), but a match is only
+     * reported `found: true` once Hive-Engine confirms it actually applied
+     * that outgoing transfer - see confirmBridgeTransferOnHiveEngine above.
+     */
+    async function checkUswapEngineTransfers(originalTxId, username, sinceMs) {
         try {
-            const history = await APIManager.tryWithFailover(() =>
-                hive.api.getAccountHistoryAsync(CONFIG.BRIDGE_USER, -1, 100)
-            );
+            const matches = await findBridgeOps((item) => {
+                const payload = bridgeEngineTransferTo(item, username);
+                return payload && String(payload.memo || '').includes(originalTxId);
+            }, sinceMs);
 
-            // Filter for custom_json operations
-            // Structure: [index, {trx_id, block, op: [type, data], timestamp, ...}]
-            const customJsonOps = history.filter((item) => {
-                const op = item[1]?.op;
-                return op && op[0] === 'custom_json' && op[1].id === 'ssc-mainnet-hive';
-            });
+            // The bridge may have made more than one attempt (e.g. a retry after
+            // a rejected payout). Any attempt Engine applied wins; an attempt
+            // Engine has not indexed yet means keep waiting; only when EVERY
+            // attempt was rejected is the payout reported as failed.
+            let pending = false;
+            let rejected = null;
 
-            for (let i = customJsonOps.length - 1; i >= 0; i--) {
-                const item = customJsonOps[i];
-                const op = item[1].op;
-                const opData = op[1];
+            for (const item of matches) {
                 const trxId = item[1].trx_id;
+                const memo = bridgeEngineTransferTo(item, username).memo || '';
 
-                try {
-                    const json = JSON.parse(opData.json);
+                const engineResult = await confirmBridgeTransferOnHiveEngine(trxId, username);
 
-                    // Check if it's a token transfer to our user
-                    if (json.contractName === 'tokens' &&
-                        json.contractAction === 'transfer' &&
-                        json.contractPayload &&
-                        json.contractPayload.to === username &&
-                        json.contractPayload.symbol === 'SWAP.HIVE') {
+                if (engineResult.confirmed) {
+                    return Object.assign({
+                        found: true,
+                        // Engine-confirmed amount, not the unverified L1 payload
+                        amount: `${engineResult.amount} SWAP.HIVE`,
+                        txId: trxId,
+                        memo: memo
+                    }, parseReplyMemo(memo));
+                }
 
-                        const payload = json.contractPayload;
-                        const memo = payload.memo || '';
-
-                        if (memo.includes(originalTxId)) {
-                            // This op is the right shape and the right memo - but that
-                            // only proves what the bridge SENT to Engine, not what
-                            // Engine actually DID with it. Confirm on L2 before trusting it.
-                            const engineResult = await confirmOnHiveEngine(trxId, username, 'SWAP.HIVE');
-
-                            if (engineResult.engineError) {
-                                // Engine explicitly rejected this - stop looking, this
-                                // will never resolve to a success no matter how long we wait.
-                                return { found: false, engineError: engineResult.engineError, txId: trxId };
-                            }
-
-                            if (!engineResult.confirmed) {
-                                // Seen on L1 but Engine hasn't indexed it yet - keep
-                                // scanning other candidates, and the outer poll loop
-                                // will re-check this same op again next cycle.
-                                continue;
-                            }
-
-                            const qtyMatch = memo.match(/Swapped Qty\s*:\s*([\d.]+)/);
-                            const priceMatch = memo.match(/Swapped Price\s*:\s*([\d.]+)/);
-
-                            return {
-                                found: true,
-                                // Engine-confirmed amount, not the unverified L1 payload
-                                amount: `${engineResult.amount} SWAP.HIVE`,
-                                txId: trxId,
-                                swappedQty: qtyMatch ? qtyMatch[1] : null,
-                                swappedPrice: priceMatch ? priceMatch[1] : null,
-                                memo: memo
-                            };
-                        }
-                    }
-                } catch (parseError) {
-                    console.error('JSON parse error:', parseError);
-                    continue;
+                if (engineResult.engineError) {
+                    rejected = rejected || { engineError: engineResult.engineError, txId: trxId };
+                } else {
+                    // Seen on L1 but Engine has not indexed it yet - the outer
+                    // poll loop re-checks it next cycle.
+                    pending = true;
                 }
             }
 
+            if (rejected && !pending) {
+                return { found: false, engineError: rejected.engineError, txId: rejected.txId };
+            }
             return { found: false };
         } catch (error) {
             console.error('Error checking Engine transfers:', error);
@@ -387,10 +562,10 @@ const SwapManager = (function() {
      * refunds in the original token when it cannot fill the swap.
      * Returns { found, outcome: 'completed'|'refunded', ... }
      */
-    async function findBridgeReply(originalTxId, username, fromToken, toToken) {
+    async function findBridgeReply(originalTxId, username, fromToken, toToken, sinceMs) {
         const lookup = (token) => token === "HIVE"
-            ? checkUswapHiveTransfers(originalTxId, username)
-            : checkUswapEngineTransfers(originalTxId, username);
+            ? checkUswapHiveTransfers(originalTxId, username, sinceMs)
+            : checkUswapEngineTransfers(originalTxId, username, sinceMs);
 
         const payout = await lookup(toToken);
         if (payout.found) {
@@ -423,18 +598,45 @@ const SwapManager = (function() {
      *   "Thank you for using our service! Swapped Qty : 40.000 &
      *    Swapped Price : 0.997 & Tx : 1b5e1b02...".
      * Until that shows up, the swap is only *submitted*, not complete.
+     *
+     * Order: confirm what came IN (the user's SWAP.HIVE deposit, on
+     * Hive-Engine), then confirm what went OUT (the bridge's payout/refund).
      */
     async function waitForSwapCompletion(originalTxId, username, fromToken, toToken) {
         const startedAt = Date.now();
+
+        // A SWAP.HIVE deposit only counts once Hive-Engine has accepted it -
+        // that is what the bridge acts on. HIVE deposits are plain L1
+        // transfers, final as soon as the wallet reports the broadcast.
+        let depositConfirmed = fromToken !== "SWAP.HIVE";
 
         // Give the chain a moment before the first look
         await Utils.sleep(CONFIG.SWAP_VERIFY_INITIAL_DELAY);
 
         while (Date.now() - startedAt < CONFIG.SWAP_VERIFY_TIMEOUT) {
             const elapsed = Math.round((Date.now() - startedAt) / 1000);
+
+            // 1. What came in
+            if (!depositConfirmed) {
+                UIManager.showLoading(`Confirming your SWAP.HIVE transfer on Hive-Engine... (${elapsed}s)`);
+                const deposit = await confirmDepositOnHiveEngine(originalTxId, username);
+                if (deposit.engineError) {
+                    // Rejected on the sidechain: the bridge never received
+                    // anything, so there is no reply to wait for.
+                    return { found: false, outcome: 'deposit-rejected', engineError: deposit.engineError };
+                }
+                // Not indexed yet (or the Engine node is slow) - still look for
+                // the bridge's reply below: a reply proves the deposit landed,
+                // and a lagging Engine node must not hold up a finished swap.
+                depositConfirmed = deposit.confirmed;
+            }
+
+            // 2. What went out
             UIManager.showLoading(`Waiting for the bridge to send your ${toToken}... (${elapsed}s)`);
 
-            const reply = await findBridgeReply(originalTxId, username, fromToken, toToken);
+            const reply = await findBridgeReply(
+                originalTxId, username, fromToken, toToken, replySince(startedAt)
+            );
             if (reply.found || reply.outcome === 'engine-error') {
                 return reply;
             }
@@ -455,10 +657,15 @@ const SwapManager = (function() {
             if (!record) return;
 
             record.status = reply.outcome;
-            record.amountReceived = reply.amount;
-            record.txIdReceived = reply.txId;
-            record.swappedQty = reply.swappedQty;
-            record.swappedPrice = reply.swappedPrice;
+            record.amountReceived = reply.amount || null;
+            record.txIdReceived = reply.txId || null;
+            record.swappedQty = reply.swappedQty || null;
+            record.swappedPrice = reply.swappedPrice || null;
+            if (reply.engineError) {
+                record.engineError = reply.engineError;
+            } else {
+                delete record.engineError;
+            }
 
             localStorage.setItem('swapHistory', JSON.stringify(history));
         } catch (error) {
@@ -501,39 +708,33 @@ const SwapManager = (function() {
     }
 
     /**
-     * Verify if transaction exists on blockchain by transaction ID
+     * Was the user's transaction broadcast to Hive at all?
+     *
+     * Both swap directions start with a Hive (L1) transaction - a HIVE
+     * transfer, or the custom_json carrying a SWAP.HIVE transfer - so L1 is
+     * the definitive answer to "was it sent". (Whether Hive-Engine then
+     * ACCEPTED a SWAP.HIVE deposit is checked separately, see
+     * confirmDepositOnHiveEngine. Engine "not found" is not used here: Engine
+     * can lag L1 by well over 30s, and "not-sent" is permanent.)
+     *
+     * Returns true / false, or null when it could not be determined (node
+     * timeout...). Only a definite `false` may mark a swap "not-sent" - a
+     * transient node error used to do so permanently, inviting the user to
+     * send the same swap again.
      */
-    async function verifyTransactionExists(txId, fromToken) {
+    async function verifyTransactionExists(txId) {
         try {
-            if (fromToken === "HIVE") {
-                // For HIVE transactions, verify on Hive blockchain
-                try {
-                    const tx = await APIManager.tryWithFailover(() =>
-                        hive.api.getTransactionAsync(txId)
-                    );
-                    return tx !== null && tx !== undefined;
-                } catch (error) {
-                    return false;
-                }
-            } else {
-                // For SWAP.HIVE (custom_json), verify it was processed by Hive Engine side chain
-                try {
-                    const ssc = APIManager.getSSC();
-                    if (!ssc) {
-                        return false;
-                    }
-                    
-                    const engineTx = await ssc.getTransactionInfo(txId);
-                    // Hive Engine returns an object with blockNumber, transactionId, etc if found
-                    // Returns null or undefined if not found
-                    return engineTx !== null && engineTx !== undefined && engineTx.transactionId;
-                } catch (error) {
-                    return false;
-                }
-            }
+            const tx = await APIManager.tryWithFailover(() =>
+                hive.api.getTransactionAsync(txId)
+            );
+            return tx !== null && tx !== undefined;
         } catch (error) {
-            console.error('Error verifying transaction existence:', error);
-            return false;
+            // hived answers an unknown id with "Unknown Transaction <id>"
+            if (/unknown transaction/i.test((error && error.message) || '')) {
+                return false;
+            }
+            console.warn('Could not verify transaction', txId, error && error.message);
+            return null;
         }
     }
 
@@ -548,6 +749,20 @@ const SwapManager = (function() {
         
         // Check status for pending swaps AND re-check completed swaps with old data
         for (let swap of userHistory) {
+            // Repair records saved by older builds, which could store the whole
+            // Keychain result object as the tx id. A string id can still be
+            // matched against the bridge's memo; an unrecoverable one cannot,
+            // so drop it rather than render "[object Object]".
+            if (swap.txIdSent && typeof swap.txIdSent !== 'string') {
+                swap.txIdSent = Utils.extractTxId(swap.txIdSent);
+            }
+            if (swap.txIdReceived && typeof swap.txIdReceived !== 'string') {
+                swap.txIdReceived = Utils.extractTxId(swap.txIdReceived);
+            }
+            if (!swap.txIdSent) {
+                continue; // nothing to match the bridge's reply against
+            }
+
             // Re-check completed swaps that have 'uswap-transfer' or 'uswap-refund' placeholder
             if ((swap.status === 'completed' || swap.status === 'refunded') && 
                 (swap.txIdReceived === 'uswap-transfer' || swap.txIdReceived === 'uswap-refund')) {
@@ -556,9 +771,9 @@ const SwapManager = (function() {
                 let result;
                 
                 if (toToken === "HIVE") {
-                    result = await checkUswapHiveTransfers(swap.txIdSent, username);
+                    result = await checkUswapHiveTransfers(swap.txIdSent, username, replySince(swap.timestamp));
                 } else {
-                    result = await checkUswapEngineTransfers(swap.txIdSent, username);
+                    result = await checkUswapEngineTransfers(swap.txIdSent, username, replySince(swap.timestamp));
                 }
                 
                 if (result.found) {
@@ -567,14 +782,33 @@ const SwapManager = (function() {
             }
             
             if (swap.status === 'pending') {
-                // First, check if swap completed or refunded by checking uswap history
+                // 1. What came in. SWAP.HIVE deposit: confirm on Hive-Engine,
+                // which is what the bridge acts on. Checked once - a confirmed
+                // deposit is final. (HIVE deposits are plain L1 transfers.)
+                if (swap.fromToken === "SWAP.HIVE" && !swap.depositConfirmed) {
+                    const deposit = await confirmDepositOnHiveEngine(swap.txIdSent, username);
+                    if (deposit.engineError) {
+                        // Rejected on the sidechain - the bridge never got it and
+                        // will never reply. Final; not re-checked after this.
+                        swap.status = 'failed';
+                        swap.engineError = deposit.engineError;
+                        continue;
+                    }
+                    if (deposit.confirmed) {
+                        swap.depositConfirmed = true;
+                    }
+                    // Not indexed yet (Engine lag): carry on - a bridge reply
+                    // below still settles the swap.
+                }
+
+                // 2. What went out: the bridge's payout (or a refund below)
                 const toToken = swap.toToken;
                 let result;
 
                 if (toToken === "HIVE") {
-                    result = await checkUswapHiveTransfers(swap.txIdSent, username);
+                    result = await checkUswapHiveTransfers(swap.txIdSent, username, replySince(swap.timestamp));
                 } else {
-                    result = await checkUswapEngineTransfers(swap.txIdSent, username);
+                    result = await checkUswapEngineTransfers(swap.txIdSent, username, replySince(swap.timestamp));
                 }
 
                 if (result.found) {
@@ -599,7 +833,7 @@ const SwapManager = (function() {
 
                 // Not completed, check for refund (same token returned)
                 if (swap.fromToken === "HIVE") {
-                    const refund = await checkUswapHiveTransfers(swap.txIdSent, username);
+                    const refund = await checkUswapHiveTransfers(swap.txIdSent, username, replySince(swap.timestamp));
                     if (refund.found) {
                         swap.status = 'refunded';
                         swap.amountReceived = refund.amount;
@@ -608,7 +842,7 @@ const SwapManager = (function() {
                         continue;
                     }
                 } else {
-                    const refund = await checkUswapEngineTransfers(swap.txIdSent, username);
+                    const refund = await checkUswapEngineTransfers(swap.txIdSent, username, replySince(swap.timestamp));
                     if (refund.found) {
                         swap.status = 'refunded';
                         swap.amountReceived = refund.amount;
@@ -616,6 +850,16 @@ const SwapManager = (function() {
                         delete swap.engineError;
                         continue;
                     }
+                }
+
+                // Hive-Engine already rejected a payout attempt for this tx, so
+                // we KNOW the deposit arrived - nothing more to verify here.
+                if (swap.engineError) {
+                    continue;
+                }
+
+                if (swap.depositConfirmed) {
+                    continue; // deposit is good - just waiting on the bridge
                 }
 
                 // Not completed and not refunded
@@ -626,13 +870,12 @@ const SwapManager = (function() {
                 const maximumWaitTime = 10 * 60 * 1000; // 10 minutes
 
                 // Only check if transaction exists after minimum wait time.
-                // Skip this entirely if Hive-Engine already told us it rejected a
-                // payout attempt for this tx - we already KNOW it was sent, so
-                // "not-sent" would be actively wrong here.
-                if (!swap.engineError && swapAge > minimumWaitTime && swapAge < maximumWaitTime) {
-                    const txExists = await verifyTransactionExists(swap.txIdSent, swap.fromToken);
+                if (swapAge > minimumWaitTime && swapAge < maximumWaitTime) {
+                    const txExists = await verifyTransactionExists(swap.txIdSent);
 
-                    if (!txExists) {
+                    // null = could not tell (node trouble): stay pending and
+                    // look again next refresh rather than claim "not sent".
+                    if (txExists === false) {
                         swap.status = 'not-sent';
                     }
                 }
@@ -640,10 +883,42 @@ const SwapManager = (function() {
             }
         }
         
-        // Update localStorage with new status
-        localStorage.setItem('swapHistory', JSON.stringify(history));
-        
-        return userHistory.slice(0, 10);
+        // Merge results into the CURRENT stored history rather than writing
+        // back the snapshot read above. The checks can take several seconds
+        // (paging back through bridge history), and meanwhile a new swap may
+        // have been recorded (addSwapToHistory) or resolved (markSwapResolved)
+        // - writing the stale snapshot would silently erase that.
+        const merged = mergeSwapUpdates(userHistory);
+
+        return merged.filter(h => h.username === username).slice(0, 10);
+    }
+
+    /**
+     * Write checked records back into the latest stored history.
+     * Records are identified by username + timestamp + token + amount, none of which change
+     * (txIdSent can, when a legacy record is repaired). A record that was
+     * resolved elsewhere in the meantime is not reverted to "pending".
+     */
+    function mergeSwapUpdates(checked) {
+        const key = (h) => [h.username, h.timestamp, h.fromToken, h.amountSent].join('|');
+        const updates = new Map(checked.map(h => [key(h), h]));
+
+        let latest;
+        try {
+            latest = JSON.parse(localStorage.getItem('swapHistory') || '[]');
+        } catch (error) {
+            latest = [];
+        }
+
+        const merged = latest.map(stored => {
+            const update = updates.get(key(stored));
+            if (!update) return stored;
+            if (stored.status !== 'pending' && update.status === 'pending') return stored;
+            return update;
+        });
+
+        localStorage.setItem('swapHistory', JSON.stringify(merged));
+        return merged;
     }
 
     /**
@@ -983,7 +1258,7 @@ const SwapManager = (function() {
                 (response) => {
                     if (response.success) {
                         // Extract transaction ID from response
-                        const txId = response.result?.id || response.result?.transaction_id || response.result || null;
+                        const txId = Utils.extractTxId(response.result);
                         resolve({ 
                             success: true, 
                             transactionId: txId,
@@ -1030,7 +1305,7 @@ const SwapManager = (function() {
                 (response) => {
                     if (response.success) {
                         // Extract transaction ID from response
-                        const txId = response.result?.id || response.result?.transaction_id || response.result || null;
+                        const txId = Utils.extractTxId(response.result);
                         resolve({ 
                             success: true, 
                             transactionId: txId,
@@ -1139,6 +1414,15 @@ const SwapManager = (function() {
                         : "";
                     UIManager.showSuccess(`Swap complete! Received ${reply.amount}${detail}.`);
                 }
+            } else if (reply.outcome === 'deposit-rejected') {
+                // The user's own SWAP.HIVE transfer failed on Hive-Engine, so
+                // nothing reached the bridge and no reply will ever come.
+                markSwapResolved(result.transactionId, username,
+                    { outcome: 'failed', engineError: reply.engineError });
+                UIManager.showError(
+                    `Hive-Engine rejected your SWAP.HIVE transfer (${reply.engineError}). ` +
+                    `Nothing was sent to the bridge.`
+                );
             } else if (reply.outcome === 'engine-error') {
                 // The bridge's payout was rejected by Hive-Engine itself (layer 2),
                 // not just "not confirmed yet" - retrying will not fix this.

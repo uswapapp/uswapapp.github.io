@@ -231,47 +231,56 @@ const UIManager = (function() {
             return;
         }
 
+        // Everything below comes from localStorage or the chain, so it is
+        // escaped before it reaches innerHTML.
+        const esc = Utils.escapeHtml;
+
+        const txLink = (txId) => {
+            if (typeof txId !== 'string' || !txId) return '-';
+            return `<a href="https://hivehub.dev/tx/${encodeURIComponent(txId)}" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: none;">
+                    ${esc(txId.substring(0, 8))}...
+                </a>`;
+        };
+
         tbody.innerHTML = history.map(swap => {
             const date = new Date(swap.timestamp);
-            const dateStr = date.toLocaleString();
+            const dateStr = esc(date.toLocaleString());
             
             // A pending swap whose Hive-Engine payout was rejected (layer 2, not
             // just "not confirmed yet") gets its own look, distinct from a plain
-            // in-progress pending - see confirmOnHiveEngine() in swap.js.
+            // in-progress pending - see confirmBridgeTransferOnHiveEngine() in swap.js.
             const hasEngineError = swap.status === 'pending' && swap.engineError;
 
             const statusClass = swap.status === 'completed' ? 'text-success' :
                               swap.status === 'refunded' ? 'text-warning' :
                               swap.status === 'not-sent' ? 'text-danger' :
+                              swap.status === 'failed' ? 'text-danger' :
                               hasEngineError ? 'text-danger' :
                               'text-info';
 
+            // 'failed' = the user's SWAP.HIVE deposit was rejected on Hive-Engine
             const statusText = swap.status === 'completed' ? '✓ Completed' :
                              swap.status === 'refunded' ? '↩ Refunded' :
                              swap.status === 'not-sent' ? '✗ Not Sent' :
+                             swap.status === 'failed'
+                                ? `<span title="Hive-Engine: ${esc(swap.engineError || 'transfer rejected')}">✗ Failed</span>` :
                              hasEngineError
-                                ? `<span title="Hive-Engine: ${swap.engineError}">⚠ Payout Error</span>`
+                                ? `<span title="Hive-Engine: ${esc(swap.engineError)}">⚠ Payout Error</span>`
                                 : '⏳ Pending';
 
-            const txIdSent = swap.txIdSent ?
-                `<a href="https://hivehub.dev/tx/${swap.txIdSent}" target="_blank" style="color: var(--primary-color); text-decoration: none;">
-                    ${swap.txIdSent.substring(0, 8)}...
-                </a>` : '-';
-
-            const txIdReceived = swap.txIdReceived ?
-                `<a href="https://hivehub.dev/tx/${swap.txIdReceived}" target="_blank" style="color: var(--primary-color); text-decoration: none;">
-                    ${swap.txIdReceived.substring(0, 8)}...
-                </a>` : '-';
+            const txIdSent = txLink(swap.txIdSent);
+            const txIdReceived = txLink(swap.txIdReceived);
 
             // Format amounts to 3 decimals
             const formatAmount = (amount) => {
                 if (!amount) return '-';
-                const match = amount.match(/([\d.]+)\s*(\w+)/);
+                const text = String(amount);
+                const match = text.match(/([\d.]+)\s*([\w.]+)/);
                 if (match) {
                     const value = parseFloat(match[1]).toFixed(3);
-                    return `${value} ${match[2]}`;
+                    return esc(`${value} ${match[2]}`);
                 }
-                return amount;
+                return esc(text);
             };
 
             return `
@@ -315,13 +324,15 @@ const UIManager = (function() {
                     </tr>
                 `;
             }
+            // Chain data - escape before it reaches innerHTML
+            const esc = Utils.escapeHtml;
             return entries.map(entry => `
                 <tr>
-                    <td><a href="https://peakd.com/@${entry.to}" target="_blank" style="color: var(--primary-color); text-decoration: none;">@${entry.to}</a></td>
-                    <td>${entry.amount.toFixed(3)}</td>
-                    <td>${type}</td>
-                    <td>${new Date(entry.timestamp).toLocaleString()}</td>
-                    <td><a href="${explorerBase}${entry.trx}" target="_blank" style="color: var(--text-secondary); text-decoration: none;" title="View transaction">↗</a></td>
+                    <td><a href="https://peakd.com/@${encodeURIComponent(entry.to)}" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: none;">@${esc(entry.to)}</a></td>
+                    <td>${esc(Utils.parseNumber(entry.amount, 0).toFixed(3))}</td>
+                    <td>${esc(type)}</td>
+                    <td>${esc(new Date(entry.timestamp).toLocaleString())}</td>
+                    <td><a href="${explorerBase}${encodeURIComponent(entry.trx)}" target="_blank" rel="noopener" style="color: var(--text-secondary); text-decoration: none;" title="View transaction">↗</a></td>
                 </tr>
             `).join('');
         };
@@ -394,6 +405,17 @@ const UIManager = (function() {
         // <head> already set data-theme before first paint; just sync the buttons.
         const current = document.documentElement.getAttribute("data-theme") || "dark";
         updateThemeButtons(current);
+    }
+
+    /**
+     * Show the minimum swap in the token actually being sent - the minimum
+     * applies to the input amount, so "1 HIVE" was wrong for SWAP.HIVE -> HIVE.
+     */
+    function updateMinimum(fromToken) {
+        const minimumElement = document.getElementById("minimum");
+        if (minimumElement) {
+            minimumElement.textContent = `${CONFIG.MINIMUM_SWAP} ${fromToken || "HIVE"}`;
+        }
     }
 
     /**
@@ -574,15 +596,10 @@ const UIManager = (function() {
             
             // Click to select this node
             const selectNode = () => {
+                // Persist the choice; the page reloads below and APIManager
+                // builds the Hive / Engine clients from it on startup.
                 window.apiManager.setSelectedNode(type, url);
-                
-                // Update the API connection
-                if (type === 'hive') {
-                    hive.api.setOptions({ url: url });
-                } else {
-                    const ssc = new SSC(url);
-                }
-                
+
                 // Close popup
                 toggleAPIPanel(type, false);
                 
@@ -850,6 +867,7 @@ const UIManager = (function() {
                 // Update fee ticker
                 document.getElementById("feeticker").textContent = inputSelect.value;
                 document.getElementById("minreceivesymbol").textContent = outputSelect.value;
+                updateMinimum(inputSelect.value);
             });
         }
 
@@ -1039,10 +1057,8 @@ const UIManager = (function() {
         updateVersions();
 
         // Set initial values
-        const minimumElement = document.getElementById("minimum");
-        if (minimumElement) {
-            minimumElement.textContent = `${CONFIG.MINIMUM_SWAP} HIVE`;
-        }
+        const inputSelect = document.getElementById("input");
+        updateMinimum(inputSelect ? inputSelect.value : "HIVE");
         
         // Disable swap button by default until validation passes
         disableSwapButton();

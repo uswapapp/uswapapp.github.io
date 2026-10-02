@@ -171,38 +171,69 @@ const HiveAuthManager = (function() {
     function requestTransfer(username, amount, currency, memo) {
         return new Promise(async (resolve, reject) => {
             let settled = false;
+            let socket = null; // the socket this request runs on
+
+            const onSocketClosed = () => {
+                hideModal();
+                finish(reject, new Utils.TransactionError(
+                    'Lost connection to Hive Auth. If you already approved, check ' +
+                    "'My Recent Swaps' before trying again."
+                ));
+            };
+
             const finish = (fn, arg) => {
                 if (settled) return;
                 settled = true;
-                if (ws) ws.onmessage = null;
+                if (socket) {
+                    socket.onmessage = null;
+                    socket.removeEventListener('close', onSocketClosed);
+                }
+                const approveBtn = document.getElementById('approve');
+                if (approveBtn) approveBtn.onclick = null;
                 clearTimeout(safetyTimer);
                 fn(arg);
             };
 
             const safetyTimer = setTimeout(() => {
+                hideModal();
                 finish(reject, new Utils.TransactionError('Hive Auth request timed out. Please try again.'));
             }, CONFIG.HIVE_AUTH_TIMEOUT);
 
             try {
                 await connect();
             } catch (error) {
-                clearTimeout(safetyTimer);
-                reject(error);
+                finish(reject, error);
                 return;
             }
+
+            // Fail fast if the socket drops mid-flow, instead of leaving the
+            // user waiting out the full HIVE_AUTH_TIMEOUT.
+            socket = ws;
+            socket.addEventListener('close', onSocketClosed);
 
             const reusingToken = hasValidCachedToken();
             let auth_key = reusingToken ? localStorage.getItem(STORAGE_KEY) : uuidv4();
             let token = reusingToken ? localStorage.getItem(STORAGE_TOKEN) : undefined;
 
+            // ws.send() throws on a closed socket; report that as a failed
+            // request instead of an uncaught error from the Approve click.
+            const send = (payload) => {
+                if (settled) return;
+                if (socket.readyState !== WebSocket.OPEN) {
+                    onSocketClosed();
+                    return;
+                }
+                socket.send(payload);
+            };
+
             const sendSignRequest = () => {
                 const op = buildSignOp(username, currency, amount, memo);
                 const sign_data = { key_type: "active", ops: [op], broadcast: true };
                 const data = CryptoJS.AES.encrypt(JSON.stringify(sign_data), auth_key).toString();
-                ws.send(JSON.stringify({ cmd: "sign_req", account: username, token: token, data: data }));
+                send(JSON.stringify({ cmd: "sign_req", account: username, token: token, data: data }));
             };
 
-            ws.onmessage = function(event) {
+            socket.onmessage = function(event) {
                 let message;
                 try {
                     message = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
@@ -264,7 +295,7 @@ const HiveAuthManager = (function() {
                     case "sign_ack": {
                         // Some HAS relays echo back the broadcast result under message.data;
                         // fall back to null (matching the Keychain path) if it isn't present.
-                        const txId = (message.data && (message.data.id || message.data.transaction_id)) || null;
+                        const txId = Utils.extractTxId(message.data);
                         finish(resolve, { success: true, transactionId: txId });
                         break;
                     }
@@ -283,7 +314,7 @@ const HiveAuthManager = (function() {
             // if any, lets the HAS server skip re-issuing a QR scan for a known device).
             const auth_data = { app: CONFIG.HIVE_AUTH_APP_DATA, token: token, challenge: undefined };
             const data = CryptoJS.AES.encrypt(JSON.stringify(auth_data), auth_key).toString();
-            ws.send(JSON.stringify({ cmd: "auth_req", account: username, data: data, token: token }));
+            send(JSON.stringify({ cmd: "auth_req", account: username, data: data, token: token }));
         });
     }
 
