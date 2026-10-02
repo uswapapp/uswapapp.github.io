@@ -38,6 +38,11 @@ const CONFIG = {
     IS_STOPPED: false,
 
     BRIDGE_USER: "uswap",
+
+    // Accounts never shown in the bridge-wide HIVE/SWAP.HIVE history tables:
+    // @theguruasia is the maintenance account, @uswap.app an internal account.
+    // (Those tables also list only swap replies - memos carrying a tx id.)
+    HISTORY_EXCLUDED_ACCOUNTS: ["theguruasia", "uswap.app"],
     
     // API URLs
     COINGECKO_HIVE_URL: "https://api.coingecko.com/api/v3/simple/price?ids=hive&vs_currencies=usd",
