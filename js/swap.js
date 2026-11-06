@@ -1015,8 +1015,13 @@ const SwapManager = (function() {
         const fromPool = fromToken === "HIVE" ? hivePool : shivePool;
         const totalPool = hivePool + shivePool;
         
-        // Calculate pool difference ratio
-        const diff = ((amount * 0.5 + fromPool) / totalPool) - 0.5;
+        // Pool difference ratio, clamped to [-0.5, 0.5]. Those are the
+        // bounds of a pool that is entirely on one side, and they are what
+        // produce the published fee caps (Min -0.50% / Max 0.65%). Without
+        // the clamp a large swap into an already lopsided pool pushed the
+        // ratio past 0.5 and the fee past the 0.65% maximum.
+        const rawDiff = ((amount * 0.5 + fromPool) / totalPool) - 0.5;
+        const diff = Math.min(0.5, Math.max(-0.5, rawDiff));
         
         // Calculate adjusted base fee (lower when balancing pools)
         const adjusted_base_fee = Math.max(
@@ -1202,15 +1207,6 @@ const SwapManager = (function() {
             return false;
         }
 
-        // Check if user has sufficient balance
-        const balances = WalletManager.getBalances();
-        const availableBalance = Utils.parseNumber(balances[fromToken], 0);
-        
-        if (availableBalance < amount) {
-            UIManager.disableSwapButton();
-            return false;
-        }
-
         // Check if bridge has sufficient liquidity for the output token
         const liquidity = MarketManager.getLiquidity();
         const expectedOutput = calculateExpectedOutput(amount, fromToken, toToken).expected;
@@ -1220,6 +1216,16 @@ const SwapManager = (function() {
         const availableLiquidity = Utils.parseNumber(liquidity[liquidityKey], 0);
         
         if (expectedOutput > availableLiquidity) {
+            UIManager.setSwapBlocked(liquidityShortMessage(toToken, expectedOutput, availableLiquidity));
+            UIManager.disableSwapButton();
+            return false;
+        }
+
+        // Check if user has sufficient balance
+        const balances = WalletManager.getBalances();
+        const availableBalance = Utils.parseNumber(balances[fromToken], 0);
+        
+        if (availableBalance < amount) {
             UIManager.disableSwapButton();
             return false;
         }
@@ -1227,6 +1233,38 @@ const SwapManager = (function() {
         // All validations passed - enable button
         UIManager.enableSwapButton();
         return true;
+    }
+
+    /**
+     * Message shown when the bridge cannot pay out the quoted amount.
+     */
+    function liquidityShortMessage(toToken, expectedOutput, availableLiquidity) {
+        if (availableLiquidity <= 0) {
+            return "The bridge has no " + toToken + " liquidity available right now, so swaps to " +
+                toToken + " are disabled.";
+        }
+        return "Not enough bridge liquidity: you would receive " +
+            Utils.formatNumber(expectedOutput, 3) + " " + toToken + " but the bridge holds only " +
+            Utils.formatNumber(availableLiquidity, 3) + " " + toToken + ". Please swap a smaller amount.";
+    }
+
+    /**
+     * Throws when the bridge does not hold enough of the output token to pay
+     * out the current quote.
+     */
+    function assertBridgeLiquidity() {
+        const liquidity = MarketManager.getLiquidity();
+        const liquidityKey = currentSwap.to === "HIVE" ? "hive" : "swapHive";
+        const availableLiquidity = Utils.parseNumber(liquidity[liquidityKey], 0);
+        const expectedOutput = calculateExpectedOutput(
+            currentSwap.amount, currentSwap.from, currentSwap.to
+        ).expected;
+        if (expectedOutput > availableLiquidity) {
+            throw new Utils.ValidationError(
+                liquidityShortMessage(currentSwap.to, expectedOutput, availableLiquidity) +
+                " Nothing was sent."
+            );
+        }
     }
 
     /**
@@ -1367,6 +1405,12 @@ const SwapManager = (function() {
 
             // Validate swap
             validateSwap();
+
+            // Re-read the bridge balances and refuse to send if the bridge can
+            // no longer pay out the quote (the pool may have moved since the
+            // page loaded).
+            await MarketManager.fetchLiquidity(true);
+            assertBridgeLiquidity();
 
             UIManager.showLoading("Processing swap...");
             UIManager.disableSwapButton();

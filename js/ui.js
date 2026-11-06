@@ -929,7 +929,13 @@ const UIManager = (function() {
         const refreshBtn = document.getElementById("refresh");
         if (refreshBtn) {
             refreshBtn.addEventListener("click", async () => {
-                await MarketManager.fetchLiquidity();
+                await MarketManager.fetchLiquidity(true);
+                // Pool balances drive both the quote and the liquidity check,
+                // so re-quote the current swap against the fresh balances.
+                const swap = SwapManager.getCurrentSwap();
+                if (swap && swap.amount > 0) {
+                    SwapManager.updateSwapCalculation(swap.amount, swap.from, swap.to, swap.slippage);
+                }
             });
         }
 
