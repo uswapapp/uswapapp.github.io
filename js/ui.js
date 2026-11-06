@@ -793,6 +793,45 @@ const UIManager = (function() {
     }
 
     /**
+     * Re-read the bridge pool and re-quote the current swap against it.
+     * Pool balances drive both the quote and the liquidity check, so a
+     * quote is only as fresh as the pool it was computed from.
+     */
+    async function refreshPoolAndQuote() {
+        await MarketManager.fetchLiquidity(true);
+        const swap = SwapManager.getCurrentSwap();
+        if (swap && swap.amount > 0) {
+            // No-op while a swap is being sent (its quote is frozen)
+            SwapManager.updateSwapCalculation(swap.amount, swap.from, swap.to, swap.slippage);
+        } else {
+            SwapManager.validateButton();
+        }
+    }
+
+    /**
+     * Background refresh, run every 30s while the tab is visible and when
+     * it becomes visible again: wallet balances (quietly - never touching the
+     * status line or spinner) and the bridge pool + quote.
+     */
+    let backgroundRefreshRunning = false;
+    async function backgroundRefresh() {
+        if (backgroundRefreshRunning || document.hidden) return;
+        backgroundRefreshRunning = true;
+        try {
+            const usernameInput = document.getElementById("username");
+            const username = usernameInput ? usernameInput.value.trim() : "";
+            await Promise.all([
+                username ? WalletManager.loadBalance(username, false, { silent: true }) : null,
+                refreshPoolAndQuote()
+            ]);
+        } catch (error) {
+            console.warn("Background refresh failed:", error && error.message);
+        } finally {
+            backgroundRefreshRunning = false;
+        }
+    }
+
+    /**
      * Setup event listeners
      */
     function setupEventListeners() {
@@ -937,13 +976,7 @@ const UIManager = (function() {
         const refreshBtn = document.getElementById("refresh");
         if (refreshBtn) {
             refreshBtn.addEventListener("click", async () => {
-                await MarketManager.fetchLiquidity(true);
-                // Pool balances drive both the quote and the liquidity check,
-                // so re-quote the current swap against the fresh balances.
-                const swap = SwapManager.getCurrentSwap();
-                if (swap && swap.amount > 0) {
-                    SwapManager.updateSwapCalculation(swap.amount, swap.from, swap.to, swap.slippage);
-                }
+                await refreshPoolAndQuote();
             });
         }
 
@@ -1098,6 +1131,7 @@ const UIManager = (function() {
         disableSwapButton,
         updateSwapHistory,
         updateBridgeHistory,
+        backgroundRefresh,
         updateVersions,
         setSwapBlocked,
         setTheme

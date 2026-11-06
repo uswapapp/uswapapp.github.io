@@ -55,24 +55,18 @@
             $("body").css("visibility", "visible");
             $("#logo").show();
 
-            // Auto-refresh balance every 30 seconds if username is present.
+            // Background refresh every 30 seconds: wallet balances (quietly -
+            // it never touches the status line, so a swap's progress or result
+            // stays visible) plus the bridge pool and the current quote.
             // Skipped while the tab is in the background - a hidden tab polling
             // Hive + Hive Engine forever is wasted network, CPU and garbage.
             // It refreshes immediately when the tab becomes visible again.
             setInterval(function() {
-                if (document.hidden) return;
-                var username = $("#username").val().trim();
-                if (username) {
-                    $("#checkbalance").trigger("click");
-                }
+                UIManager.backgroundRefresh();
             }, 30000);
 
             document.addEventListener("visibilitychange", function() {
-                if (document.hidden) return;
-                var username = $("#username").val().trim();
-                if (username) {
-                    $("#checkbalance").trigger("click");
-                }
+                if (!document.hidden) UIManager.backgroundRefresh();
             });
         });
     </script>

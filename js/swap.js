@@ -658,7 +658,7 @@ const SwapManager = (function() {
      */
     function markSwapResolved(txIdSent, username, reply) {
         try {
-            const history = JSON.parse(localStorage.getItem('swapHistory') || '[]');
+            const history = readStoredHistory();
             const record = history.find(h => h.txIdSent === txIdSent && h.username === username);
             if (!record) return;
 
@@ -680,7 +680,37 @@ const SwapManager = (function() {
     }
 
     /**
-     * Add swap to history tracking
+     * Read the stored swap history. Never throws: damaged or unavailable
+     * storage reads as an empty history.
+     */
+    function readStoredHistory() {
+        try {
+            const parsed = JSON.parse(localStorage.getItem('swapHistory') || '[]');
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+            console.warn('Swap history in storage is unreadable - ignoring it:', error.message);
+            return [];
+        }
+    }
+
+    /**
+     * Save the swap history. Never throws (full or blocked storage just
+     * means the record is not kept); returns whether it was saved.
+     */
+    function writeStoredHistory(history) {
+        try {
+            localStorage.setItem('swapHistory', JSON.stringify(history));
+            return true;
+        } catch (error) {
+            console.warn('Could not save swap history:', error.message);
+            return false;
+        }
+    }
+
+    /**
+     * Add swap to history tracking.
+     * Runs AFTER the funds were sent, so it must never throw - an error here
+     * used to surface as "swap failed" and invite the user to send again.
      */
     function addSwapToHistory(txId, amount, fromToken, username) {
         const swapRecord = {
@@ -696,7 +726,7 @@ const SwapManager = (function() {
         };
 
         // Get existing history from localStorage
-        let history = JSON.parse(localStorage.getItem('swapHistory') || '[]');
+        let history = readStoredHistory();
         
         // Add new record at the beginning
         history.unshift(swapRecord);
@@ -707,10 +737,15 @@ const SwapManager = (function() {
         history = [...userHistory, ...otherHistory];
         
         // Save to localStorage
-        localStorage.setItem('swapHistory', JSON.stringify(history));
+        writeStoredHistory(history);
         
-        // Update UI
-        UIManager.updateSwapHistory();
+        // Update UI (async; a failure here must not reach executeSwap)
+        try {
+            Promise.resolve(UIManager.updateSwapHistory()).catch(error =>
+                console.warn('Could not refresh swap history:', error && error.message));
+        } catch (error) {
+            console.warn('Could not refresh swap history:', error && error.message);
+        }
     }
 
     /**
@@ -750,7 +785,7 @@ const SwapManager = (function() {
     async function loadSwapHistory(username) {
         if (!username) return [];
 
-        let history = JSON.parse(localStorage.getItem('swapHistory') || '[]');
+        let history = readStoredHistory();
         const userHistory = history.filter(h => h.username === username);
         
         // Check status for pending swaps AND re-check completed swaps with old data
@@ -909,12 +944,7 @@ const SwapManager = (function() {
         const key = (h) => [h.username, h.timestamp, h.fromToken, h.amountSent].join('|');
         const updates = new Map(checked.map(h => [key(h), h]));
 
-        let latest;
-        try {
-            latest = JSON.parse(localStorage.getItem('swapHistory') || '[]');
-        } catch (error) {
-            latest = [];
-        }
+        const latest = readStoredHistory();
 
         const merged = latest.map(stored => {
             const update = updates.get(key(stored));
@@ -923,7 +953,7 @@ const SwapManager = (function() {
             return update;
         });
 
-        localStorage.setItem('swapHistory', JSON.stringify(merged));
+        writeStoredHistory(merged);
         return merged;
     }
 
@@ -1350,6 +1380,31 @@ const SwapManager = (function() {
     }
 
     /**
+     * Throws when, with the latest fees and pool balances, the bridge would
+     * pay less than the minimum-to-receive the user was shown (and that goes
+     * into the memo). Skipped in "No Minimum" mode, which accepts any amount.
+     */
+    function assertQuoteStillValid() {
+        if (currentSwap.noMinimum) return;
+
+        const fresh = calculateExpectedOutput(currentSwap.amount, currentSwap.from, currentSwap.to);
+        if (fresh.expected >= currentSwap.minReceive) return;
+
+        const shown = currentSwap.expected;
+        // Unfreeze and show the new quote so the user can review it
+        swapInProgress = false;
+        updateSwapCalculation(currentSwap.amount, currentSwap.from, currentSwap.to, currentSwap.slippage);
+        swapInProgress = true;
+
+        throw new Utils.ValidationError(
+            "The price moved: you would now receive about " + Utils.formatNumber(fresh.expected, 3) +
+            " " + currentSwap.to + " instead of " + Utils.formatNumber(shown, 3) +
+            ", below your minimum. The quote has been updated - review it and click SWAP NOW again. " +
+            "Nothing was sent."
+        );
+    }
+
+    /**
      * Validate swap (returns validation result)
      */
     function validateSwap() {
@@ -1514,6 +1569,12 @@ const SwapManager = (function() {
             await MarketManager.fetchLiquidity(true);
             assertBridgeLiquidity();
 
+            // The memo carries the minimum the user agreed to. Re-quote with
+            // the fees and pool just re-read: if the bridge would now pay
+            // less than that minimum it would only refund the swap, so stop
+            // here, show the new quote and let the user decide.
+            assertQuoteStillValid();
+
             UIManager.showLoading("Processing swap...");
 
             const username = WalletManager.getCurrentUser();
@@ -1552,7 +1613,7 @@ const SwapManager = (function() {
             if (!result.transactionId) {
                 UIManager.hideLoading();
                 UIManager.showSuccess("Transaction submitted. Check 'My Recent Swaps' for the result.");
-                setTimeout(() => WalletManager.refreshBalance(), 10000);
+                setTimeout(() => WalletManager.refreshBalance({ silent: true }), 10000);
                 return true;
             }
 
@@ -1601,7 +1662,7 @@ const SwapManager = (function() {
                 );
             }
 
-            await WalletManager.refreshBalance();
+            await WalletManager.refreshBalance({ silent: true });
             UIManager.updateSwapHistory();
 
             return true;
@@ -1654,6 +1715,7 @@ const SwapManager = (function() {
         getBackendVersion: () => backendVersion,
         getBackendVersionSource: () => backendVersionSource,
         isBridgeStopped: () => bridgeStopped,
+        isSwapInProgress: () => swapInProgress,
         getMinimumLiquidity: () => minimumLiquidity
     };
 })();
