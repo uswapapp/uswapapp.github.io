@@ -1035,9 +1035,16 @@ const SwapManager = (function() {
         // Calculate expected output
         const expectedOutput = (amount * price) * (1 - adjusted_base_fee);
         
-        // Calculate fee amount in input token
-        const feeAmount = amount * adjusted_base_fee;
-        const feePercent = adjusted_base_fee * 100;
+        // Effective fee in the input token: everything the user gives up
+        // versus a swap at the base (parity) price. This includes BOTH the
+        // base fee and the pool-imbalance price adjustment, matching the
+        // Min/Mid/Max fee table (-0.50% / 0.20% / 0.65%). It is negative
+        // when the swap rebalances the pools (a reward).
+        const parityPrice = fromToken === "HIVE"
+            ? feeConfig.BASE_PRICE_HIVE_TO_SHIVE
+            : 1 / feeConfig.BASE_PRICE_HIVE_TO_SHIVE;
+        const feeAmount = amount - (expectedOutput / parityPrice);
+        const feePercent = (feeAmount / amount) * 100;
         
         return {
             feeAmount: Utils.roundTo(feeAmount, 8),
@@ -1056,11 +1063,19 @@ const SwapManager = (function() {
         }
 
         const result = calculateFee(inputAmount, fromToken, toToken);
+        const expected = Math.floor(result.expectedOutput * CONFIG.DECIMAL) / CONFIG.DECIMAL;
+
+        // Derive the shown fee from the shown (floored) output so that
+        // "You Send - Expected Fee = You Receive" adds up on screen.
+        const parityPrice = fromToken === "HIVE"
+            ? feeConfig.BASE_PRICE_HIVE_TO_SHIVE
+            : 1 / feeConfig.BASE_PRICE_HIVE_TO_SHIVE;
+        const fee = Utils.roundTo(inputAmount - (expected / parityPrice), 8);
 
         return {
-            expected: Math.floor(result.expectedOutput * CONFIG.DECIMAL) / CONFIG.DECIMAL,
-            fee: result.feeAmount,
-            feePercent: result.feePercent
+            expected: expected,
+            fee: fee,
+            feePercent: Utils.roundTo((fee / inputAmount) * 100, 4)
         };
     }
 
