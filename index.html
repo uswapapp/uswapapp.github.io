@@ -242,10 +242,6 @@
                         </div>
                     </div>
                     <div class="card-body-custom">
-                        <!-- Shown when the operator has paused the bridge, or when
-                             bridge liquidity is under MINIMUM_LIQUIDITY -->
-                        <div id="swapBlockedNotice" class="swap-blocked-notice d-none"></div>
-
                         <!-- From Token -->
                         <div class="swap-input-container">
                             <label class="swap-label">You Send</label>
@@ -355,6 +351,11 @@
                                 </label>
                             </div>
                         </div>
+
+                        <!-- Why SWAP NOW is disabled: bridge paused, not enough
+                             liquidity, wallet not loaded... Sits right above the
+                             button so the reason is next to what the user clicks. -->
+                        <div id="swapBlockedNotice" class="swap-blocked-notice mt-3 d-none"></div>
 
                         <!-- Swap Button -->
                         <button type="button" id="swap" class="btn btn-gradient btn-lg w-100 mt-3" disabled>

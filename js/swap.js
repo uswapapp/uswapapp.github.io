@@ -1725,6 +1725,11 @@ const SwapManager = (function() {
                 );
             }
 
+            // This swap is finished (its result is on screen), so unlock now
+            // rather than after the balance refresh below - otherwise a new
+            // amount typed straight after the result was silently ignored.
+            releaseSwapLock();
+
             await WalletManager.refreshBalance({ silent: true });
             UIManager.updateSwapHistory();
 
@@ -1742,9 +1747,23 @@ const SwapManager = (function() {
             }
             return false;
         } finally {
-            swapInProgress = false;
-            // Re-check the button: after a sent swap the amount is 0, so it
-            // stays off until the user enters a new one.
+            if (swapInProgress) {
+                releaseSwapLock();
+            }
+        }
+    }
+
+    /**
+     * End the one-swap-at-a-time lock and pick up whatever is in the form
+     * now: the quote was frozen while locked, so anything typed meanwhile
+     * was not yet quoted. After a sent swap the boxes were cleared, so the
+     * amount is 0 and the button stays off until a new one is entered.
+     */
+    function releaseSwapLock() {
+        swapInProgress = false;
+        if (document.getElementById("inputquantity")) {
+            syncSwapFromInputs();
+        } else {
             validateSwapButton();
         }
     }

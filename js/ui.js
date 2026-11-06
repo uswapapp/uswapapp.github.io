@@ -841,6 +841,20 @@ const UIManager = (function() {
     }
 
     /**
+     * Clear the status line (and spinner) when the user starts setting up a
+     * new swap. The previous swap's result ("Swap complete! ...") used to stay
+     * under the button while a different swap was being entered, reading as
+     * if it applied to the new one. Never clears a swap that is running.
+     */
+    function clearStaleStatus() {
+        if (typeof SwapManager !== "undefined" && SwapManager.isSwapInProgress &&
+            SwapManager.isSwapInProgress()) {
+            return;
+        }
+        hideLoading();
+    }
+
+    /**
      * Re-read the bridge pool and re-quote the current swap against it.
      * Pool balances drive both the quote and the liquidity check, so a
      * quote is only as fresh as the pool it was computed from.
@@ -931,6 +945,7 @@ const UIManager = (function() {
             }, 300);
 
             inputQty.addEventListener("input", (e) => {
+                clearStaleStatus();
                 const amount = Utils.parseNumber(e.target.value, 0);
                 const fromToken = document.getElementById("input").value;
                 const toToken = document.getElementById("output").value;
@@ -948,6 +963,7 @@ const UIManager = (function() {
         const inputSelect = document.getElementById("input");
         if (inputSelect) {
             inputSelect.addEventListener("change", () => {
+                clearStaleStatus();
                 const outputSelect = document.getElementById("output");
                 if (outputSelect) {
                     outputSelect.value = inputSelect.value === "HIVE" ? "SWAP.HIVE" : "HIVE";
@@ -978,6 +994,7 @@ const UIManager = (function() {
         const slippageRadios = document.querySelectorAll('input[name="my-radio-group"]');
         slippageRadios.forEach(radio => {
             radio.addEventListener("change", (e) => {
+                clearStaleStatus();
                 const amount = parseFloat(inputQty?.value) || 0;
                 const fromToken = document.getElementById("input").value;
                 const toToken = document.getElementById("output").value;
@@ -991,6 +1008,7 @@ const UIManager = (function() {
         const noMinimumCheck = document.getElementById("noMinimumCheck");
         if (noMinimumCheck) {
             noMinimumCheck.addEventListener("change", (e) => {
+                clearStaleStatus();
                 SwapManager.setNoMinimum(e.target.checked);
 
                 // Grey out the now-irrelevant slippage controls for clarity

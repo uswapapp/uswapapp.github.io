@@ -8,7 +8,7 @@ const CONFIG = {
     // FRONTEND_VERSION is the source of truth for this app: it is shown in the
     // footer and drives the service worker cache name (see sw.js), so bumping
     // it is what actually pushes a new build out to returning visitors.
-    FRONTEND_VERSION: "2.2.0",
+    FRONTEND_VERSION: "2.2.1",
     // Fallback only: used when fee.json does not publish a version. fee.json
     // currently publishes none, so this IS what the footer shows - keep it in
     // step with the deployed backend script.
