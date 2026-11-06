@@ -803,6 +803,14 @@ const UIManager = (function() {
             usernameInput.value = savedUsername;
         }
         
+        // Typing a different account turns the swap button off (with a
+        // reason) until that account's balances are loaded.
+        if (usernameInput) {
+            usernameInput.addEventListener('input', () => {
+                SwapManager.validateButton();
+            });
+        }
+
         // Save username when it changes
         if (usernameInput) {
             usernameInput.addEventListener('blur', () => {

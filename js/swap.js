@@ -171,6 +171,12 @@ const SwapManager = (function() {
         }
     }
 
+    // True from the moment SWAP NOW is clicked until that swap is finished
+    // (sent and the bridge replied, timed out, or failed). While set, the
+    // button stays disabled and the quote is frozen, so one click can never
+    // turn into two swaps.
+    let swapInProgress = false;
+
     let currentSwap = {
         from: "HIVE",
         to: "SWAP.HIVE",
@@ -1088,6 +1094,13 @@ const SwapManager = (function() {
      * Update swap calculation
      */
     function updateSwapCalculation(amount, fromToken, toToken, slippage) {
+        // A swap is being sent: keep the amount and memo it was validated
+        // with. (A debounced keystroke or a balance refresh must not change
+        // what is about to be signed.)
+        if (swapInProgress) {
+            return currentSwap;
+        }
+
         currentSwap.from = fromToken;
         currentSwap.to = toToken;
         currentSwap.amount = Utils.parseNumber(amount, 0);
@@ -1112,6 +1125,39 @@ const SwapManager = (function() {
         validateSwapButton();
 
         return currentSwap;
+    }
+
+    /**
+     * Forget the amount of a swap that has been sent. The input boxes are
+     * cleared at the same time, so nothing is left that a later button
+     * re-check (e.g. the 30s balance refresh) could re-enable and resend.
+     */
+    function resetSwapAmount() {
+        currentSwap.amount = 0;
+        currentSwap.expected = 0;
+        currentSwap.fee = 0;
+        currentSwap.feePercent = 0;
+        currentSwap.minReceive = 0;
+    }
+
+    /**
+     * Re-quote from what is in the form right now. The input handler only
+     * re-quotes 300ms after the last keystroke, so a quick click could
+     * otherwise send the previous amount.
+     */
+    function syncSwapFromInputs() {
+        const inputQty = document.getElementById("inputquantity");
+        const inputSelect = document.getElementById("input");
+        const outputSelect = document.getElementById("output");
+        const slippageEl = document.querySelector('input[name="my-radio-group"]:checked');
+        if (!inputQty || !inputSelect || !outputSelect) return;
+
+        updateSwapCalculation(
+            Utils.parseNumber(inputQty.value, 0),
+            inputSelect.value,
+            outputSelect.value,
+            slippageEl ? slippageEl.value : currentSwap.slippage
+        );
     }
 
     /**
@@ -1171,6 +1217,12 @@ const SwapManager = (function() {
         const fromToken = inputFrom || currentSwap.from;
         const toToken = inputTo || currentSwap.to;
 
+        // A swap is already being sent - keep the button off until it ends
+        if (swapInProgress) {
+            UIManager.disableSwapButton();
+            return false;
+        }
+
         // Operator has paused the bridge - block swaps outright
         if (bridgeStopped) {
             UIManager.setSwapBlocked(
@@ -1217,6 +1269,13 @@ const SwapManager = (function() {
         
         if (expectedOutput > availableLiquidity) {
             UIManager.setSwapBlocked(liquidityShortMessage(toToken, expectedOutput, availableLiquidity));
+            UIManager.disableSwapButton();
+            return false;
+        }
+
+        // The box must name the account whose balances are loaded
+        if (walletMismatch()) {
+            UIManager.setSwapBlocked(walletMismatchMessage());
             UIManager.disableSwapButton();
             return false;
         }
@@ -1268,12 +1327,38 @@ const SwapManager = (function() {
     }
 
     /**
+     * The account typed in the wallet box (sanitised), or "" if none.
+     */
+    function typedUsername() {
+        const el = document.getElementById("username");
+        return el ? Utils.sanitizeUsername(el.value) : "";
+    }
+
+    /**
+     * True when the box names a different account than the one whose
+     * balances are loaded - the swap would be signed by the loaded one.
+     */
+    function walletMismatch() {
+        const loaded = WalletManager.getCurrentUser();
+        const typed = typedUsername();
+        return !!(loaded && typed && typed !== loaded);
+    }
+
+    function walletMismatchMessage() {
+        return "@" + typedUsername() + " is not loaded yet (balances shown are for @" +
+            WalletManager.getCurrentUser() + "). Click Load Balance before swapping.";
+    }
+
+    /**
      * Validate swap (returns validation result)
      */
     function validateSwap() {
         const username = WalletManager.getCurrentUser();
         if (!username) {
             throw new Utils.ValidationError("Please load your wallet first");
+        }
+        if (walletMismatch()) {
+            throw new Utils.ValidationError(walletMismatchMessage() + " Nothing was sent.");
         }
 
         const balance = WalletManager.getBalance(currentSwap.from);
@@ -1390,6 +1475,23 @@ const SwapManager = (function() {
      * Execute swap with comprehensive error handling
      */
     async function executeSwap() {
+        // Ignore extra clicks while a swap is already running
+        if (swapInProgress) {
+            return false;
+        }
+
+        // Quote what is in the form at the moment of the click, then lock:
+        // from here until this swap ends the button stays off and the quote
+        // is frozen.
+        syncSwapFromInputs();
+        swapInProgress = true;
+        UIManager.disableSwapButton();
+        UIManager.showLoading("Checking the bridge...");
+
+        // Set once the wallet has broadcast the transfer: from then on the
+        // amount must never be offered for sending again, even on an error.
+        let sent = false;
+
         try {
             // Re-read the operator controls immediately before submitting. The
             // page may have been open for a long time, and sending funds into a
@@ -1413,7 +1515,6 @@ const SwapManager = (function() {
             assertBridgeLiquidity();
 
             UIManager.showLoading("Processing swap...");
-            UIManager.disableSwapButton();
 
             const username = WalletManager.getCurrentUser();
             const minReceiveFormatted = Utils.roundTo(currentSwap.minReceive, 3).toFixed(3);
@@ -1433,6 +1534,7 @@ const SwapManager = (function() {
                 result = await executeSwapHiveToHive(currentSwap.amount, username, memo);
             }
 
+            sent = true;
             const fromToken = currentSwap.from;
             const toToken = currentSwap.to;
 
@@ -1441,6 +1543,8 @@ const SwapManager = (function() {
                 addSwapToHistory(result.transactionId, currentSwap.amount, fromToken, username);
             }
 
+            // Sent: forget the amount along with the input boxes
+            resetSwapAmount();
             UIManager.clearSwapInputs();
 
             // Without a transaction id we cannot match the bridge's reply, so be
@@ -1506,9 +1610,18 @@ const SwapManager = (function() {
             const handled = Utils.handleError(error, 'SwapManager.executeSwap');
             UIManager.hideLoading();
             UIManager.showError(handled.message);
-            // Re-validate button after error
-            validateSwapButton();
+            if (sent) {
+                // Funds already left the wallet - do not leave the amount
+                // armed for a second send.
+                resetSwapAmount();
+                UIManager.clearSwapInputs();
+            }
             return false;
+        } finally {
+            swapInProgress = false;
+            // Re-check the button: after a sent swap the amount is 0, so it
+            // stays off until the user enters a new one.
+            validateSwapButton();
         }
     }
 

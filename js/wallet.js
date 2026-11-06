@@ -131,6 +131,19 @@ const WalletManager = (function() {
                     const handled = Utils.handleError(error, 'WalletManager.loadBalance');
                     UIManager.hideLoading();
                     UIManager.showError(handled.message);
+
+                    // Switching to a different account failed: drop the old
+                    // account rather than keep its balances on screen next to
+                    // the new name (a swap would have been signed by the old
+                    // one). A failed refresh of the SAME account keeps its
+                    // last balances - that is just a node hiccup.
+                    if (currentUser && currentUser !== sanitized) {
+                        clearWallet();
+                        UIManager.updateBalance("hive", 0);
+                        UIManager.updateBalance("swaphive", 0);
+                        UIManager.updateSwapHistory();
+                    }
+                    SwapManager.validateButton();
                     resolve(null);
                 }
             }, 500); // 500ms debounce delay
