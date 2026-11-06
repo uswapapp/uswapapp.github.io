@@ -1018,6 +1018,7 @@ const SwapManager = (function() {
             warnOnConfigDrift(data);
 
             refreshVersionDisplay();
+            refreshFeeInfoDisplay();
         } catch (error) {
             // fee.json unreachable or unusable - fall back to config.js in
             // full, so nothing it served earlier in this session survives.
@@ -1028,6 +1029,85 @@ const SwapManager = (function() {
                 "| stopped:", bridgeStopped,
                 "| minLiquidity:", minimumLiquidity);
             refreshVersionDisplay();
+            refreshFeeInfoDisplay();
+        }
+    }
+
+    /**
+     * Price and base fee for a pool imbalance ratio `diff` (-0.5..0.5).
+     * The one place the fee curve lives: the swap quote (calculateFee) and
+     * the Fee Information panel (getFeeRange) both use it, so the panel can
+     * never disagree with what a swap is actually quoted.
+     */
+    function priceAtDiff(diff, fromToken) {
+        // Adjusted base fee (lower when balancing pools)
+        const adjusted_base_fee = Math.max(
+            feeConfig.BASE_FEE * (1 - 2 * Math.abs(diff)),
+            feeConfig.MIN_BASE_FEE
+        );
+
+        // Price with pool imbalance adjustment
+        const price = parityPriceFor(fromToken) - (2 * diff * feeConfig.DIFF_COEFFICIENT);
+
+        return { price, adjusted_base_fee };
+    }
+
+    /**
+     * Output per unit of input at the base price, with no fee or imbalance.
+     */
+    function parityPriceFor(fromToken) {
+        return fromToken === "HIVE"
+            ? feeConfig.BASE_PRICE_HIVE_TO_SHIVE
+            : 1 / feeConfig.BASE_PRICE_HIVE_TO_SHIVE;
+    }
+
+    /**
+     * Effective fee (fraction, negative = reward) at imbalance `diff`.
+     */
+    function effectiveFeeAtDiff(diff, fromToken) {
+        const { price, adjusted_base_fee } = priceAtDiff(diff, fromToken);
+        return 1 - (price * (1 - adjusted_base_fee)) / parityPriceFor(fromToken);
+    }
+
+    /**
+     * Fee range under the current fee settings, in percent:
+     *   min - the lowest fee any swap can get (usually one that fully
+     *         rebalances the pool; negative = a reward)
+     *   mid - the fee in a balanced pool
+     *   max - the highest fee any swap can pay
+     * min/max are searched over every pool state (imbalance -0.5..0.5) and
+     * both directions rather than read off the end points: the base fee
+     * shrinks as the pool gets lopsided, so with some settings the most
+     * expensive swap is not at the extreme.
+     */
+    function getFeeRange() {
+        const dirs = ["HIVE", "SWAP.HIVE"];
+        const steps = 1000;
+        let min = Infinity;
+        let max = -Infinity;
+        for (const dir of dirs) {
+            for (let i = 0; i <= steps; i++) {
+                const fee = effectiveFeeAtDiff(-0.5 + i / steps, dir);
+                if (fee < min) min = fee;
+                if (fee > max) max = fee;
+            }
+        }
+        const pct = (fraction) => Utils.roundTo(fraction * 100, 4);
+        return {
+            min: pct(min),
+            mid: pct(Math.max(...dirs.map(d => effectiveFeeAtDiff(0, d)))),
+            max: pct(max)
+        };
+    }
+
+    /**
+     * Push the current fee range into the Fee Information panel. Called
+     * after every fee.json read (or fallback), like the version footer.
+     * Guarded because the first fetch happens before UIManager.initialize().
+     */
+    function refreshFeeInfoDisplay() {
+        if (typeof UIManager !== "undefined" && UIManager.updateFeeInfo) {
+            UIManager.updateFeeInfo(getFeeRange());
         }
     }
 
@@ -1059,19 +1139,7 @@ const SwapManager = (function() {
         const rawDiff = ((amount * 0.5 + fromPool) / totalPool) - 0.5;
         const diff = Math.min(0.5, Math.max(-0.5, rawDiff));
         
-        // Calculate adjusted base fee (lower when balancing pools)
-        const adjusted_base_fee = Math.max(
-            feeConfig.BASE_FEE * (1 - 2 * Math.abs(diff)),
-            feeConfig.MIN_BASE_FEE
-        );
-        
-        // Calculate price with pool imbalance adjustment
-        let price;
-        if (fromToken === "HIVE") {
-            price = feeConfig.BASE_PRICE_HIVE_TO_SHIVE - (2 * diff * feeConfig.DIFF_COEFFICIENT);
-        } else {
-            price = (1 / feeConfig.BASE_PRICE_HIVE_TO_SHIVE) - (2 * diff * feeConfig.DIFF_COEFFICIENT);
-        }
+        const { price, adjusted_base_fee } = priceAtDiff(diff, fromToken);
         
         // Calculate expected output
         const expectedOutput = (amount * price) * (1 - adjusted_base_fee);
@@ -1081,10 +1149,7 @@ const SwapManager = (function() {
         // base fee and the pool-imbalance price adjustment, matching the
         // Min/Mid/Max fee table (-0.50% / 0.20% / 0.65%). It is negative
         // when the swap rebalances the pools (a reward).
-        const parityPrice = fromToken === "HIVE"
-            ? feeConfig.BASE_PRICE_HIVE_TO_SHIVE
-            : 1 / feeConfig.BASE_PRICE_HIVE_TO_SHIVE;
-        const feeAmount = amount - (expectedOutput / parityPrice);
+        const feeAmount = amount - (expectedOutput / parityPriceFor(fromToken));
         const feePercent = (feeAmount / amount) * 100;
         
         return {
@@ -1108,10 +1173,7 @@ const SwapManager = (function() {
 
         // Derive the shown fee from the shown (floored) output so that
         // "You Send - Expected Fee = You Receive" adds up on screen.
-        const parityPrice = fromToken === "HIVE"
-            ? feeConfig.BASE_PRICE_HIVE_TO_SHIVE
-            : 1 / feeConfig.BASE_PRICE_HIVE_TO_SHIVE;
-        const fee = Utils.roundTo(inputAmount - (expected / parityPrice), 8);
+        const fee = Utils.roundTo(inputAmount - (expected / parityPriceFor(fromToken)), 8);
 
         return {
             expected: expected,
@@ -1716,6 +1778,7 @@ const SwapManager = (function() {
         getBackendVersionSource: () => backendVersionSource,
         isBridgeStopped: () => bridgeStopped,
         isSwapInProgress: () => swapInProgress,
-        getMinimumLiquidity: () => minimumLiquidity
+        getMinimumLiquidity: () => minimumLiquidity,
+        getFeeRange
     };
 })();

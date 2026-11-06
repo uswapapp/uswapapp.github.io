@@ -178,21 +178,22 @@
                                 Fee Information
                             </h4>
                             
-                            <!-- Fees are symmetric, so one table covers both
-                                 directions rather than repeating identical values -->
+                            <!-- Filled from the live fee settings (fee.json) by
+                                 UIManager.updateFeeInfo. The values below are only
+                                 what shows before the first fee.json read. -->
                             <div class="fee-table">
                                 <div class="fee-row-header">HIVE ⇄ SWAP.HIVE</div>
                                 <div class="fee-row">
                                     <span>Min Fee</span>
-                                    <span class="fee-value">-0.50%</span>
+                                    <span class="fee-value" id="feeMin">-0.50%</span>
                                 </div>
                                 <div class="fee-row">
                                     <span>Mid Fee</span>
-                                    <span class="fee-value">0.20%</span>
+                                    <span class="fee-value" id="feeMid">0.20%</span>
                                 </div>
                                 <div class="fee-row">
                                     <span>Max Fee</span>
-                                    <span class="fee-value">0.65%</span>
+                                    <span class="fee-value" id="feeMax">0.65%</span>
                                 </div>
                             </div>
                         </div>
@@ -407,7 +408,7 @@
                             </div>
                         </div>
                         <div class="info-box mt-3">
-                            <p class="info-text">Provide liquidity and earn up to <strong>0.5%</strong> instant rewards!</p>
+                            <p class="info-text" id="liquidityRewardText">Provide liquidity and earn up to <strong>0.5%</strong> instant rewards!</p>
                         </div>
                     </div>
                 </div>

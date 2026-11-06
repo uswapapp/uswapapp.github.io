@@ -375,6 +375,44 @@ const UIManager = (function() {
     }
 
     /**
+     * Fill the Fee Information panel (Min / Mid / Max) and the liquidity
+     * rewards line from the live fee settings - see SwapManager.getFeeRange.
+     * They used to be fixed text, so a fee change in fee.json left the panel
+     * showing different numbers from what swaps were actually quoted.
+     */
+    function updateFeeInfo(range) {
+        if (!range) return;
+        const fmt = (pct) => {
+            const rounded = Utils.roundTo(pct, 2);
+            return (Object.is(rounded, -0) ? 0 : rounded).toFixed(2) + "%";
+        };
+        const set = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        };
+        set("feeMin", fmt(range.min));
+        set("feeMid", fmt(range.mid));
+        set("feeMax", fmt(range.max));
+
+        // A negative minimum fee is a reward for swaps that rebalance the
+        // pool. Show "up to X%" only when there is one.
+        const reward = -range.min;
+        const rewardLine = document.getElementById("liquidityRewardText");
+        if (rewardLine) {
+            if (reward > 0) {
+                const pct = String(Utils.roundTo(reward, 2)) + "%";
+                rewardLine.textContent = "";
+                rewardLine.append("Provide liquidity and earn up to ");
+                const strong = document.createElement("strong");
+                strong.textContent = pct;
+                rewardLine.append(strong, " instant rewards!");
+            } else {
+                rewardLine.textContent = "Swaps that rebalance the pool pay the lowest fee.";
+            }
+        }
+    }
+
+    /**
      * ==================== THEME (Light/Dark) ====================
      * Ported from uswapapp's dark/light toggle. Unlike uswapapp (two full
      * stylesheets), uswapui's CSS is variable-driven, so we just flip a
@@ -1102,6 +1140,7 @@ const UIManager = (function() {
         setupEventListeners();
         initializeTheme();
         updateVersions();
+        updateFeeInfo(SwapManager.getFeeRange());
 
         // Set initial values
         const inputSelect = document.getElementById("input");
@@ -1133,6 +1172,7 @@ const UIManager = (function() {
         updateBridgeHistory,
         backgroundRefresh,
         updateVersions,
+        updateFeeInfo,
         setSwapBlocked,
         setTheme
     };
