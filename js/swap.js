@@ -1601,6 +1601,10 @@ const SwapManager = (function() {
         // from here until this swap ends the button stays off and the quote
         // is frozen.
         syncSwapFromInputs();
+        // Sign-in method as chosen at the click; changing it while the
+        // pre-send checks run must not change how this swap is signed.
+        const authMethodEl = document.querySelector('input[name="txtype"]:checked');
+        const authMethod = authMethodEl ? authMethodEl.value : "Hive Keychain";
         swapInProgress = true;
         UIManager.disableSwapButton();
         UIManager.showLoading("Checking the bridge...");
@@ -1643,9 +1647,6 @@ const SwapManager = (function() {
             const minReceiveFormatted = Utils.roundTo(currentSwap.minReceive, 3).toFixed(3);
             // "No Minimum" mode sends memo "0" so the bridge accepts any output amount
             const memo = currentSwap.noMinimum ? "0" : minReceiveFormatted;
-
-            const authMethodEl = document.querySelector('input[name="txtype"]:checked');
-            const authMethod = authMethodEl ? authMethodEl.value : "Hive Keychain";
 
             let result;
             if (authMethod === "Hive Auth") {

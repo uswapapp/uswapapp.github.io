@@ -173,17 +173,27 @@ const UIManager = (function() {
             swapBtn.disabled = false;
         }
 
-        // Enable auth method radios (Hive Auth only if this browser actually supports it)
-        const authRadios = document.querySelectorAll('input[name="txtype"]');
-        if (authRadios) {
-            authRadios.forEach(radio => {
-                if (radio.value === "Hive Auth" && !HiveAuthManager.isSupported()) {
-                    radio.disabled = true;
-                    return;
+    }
+
+    /**
+     * Make the sign-in method choice usable. It used to be enabled only
+     * together with the SWAP button, so Hive Auth could not be picked until a
+     * valid amount was entered and greyed out whenever the amount was not.
+     * Hive Auth stays disabled only in a browser that cannot run it.
+     */
+    function initializeAuthMethods() {
+        document.querySelectorAll('input[name="txtype"]').forEach(radio => {
+            const unsupported = radio.value === "Hive Auth" && !HiveAuthManager.isSupported();
+            radio.disabled = unsupported;
+            if (unsupported) {
+                radio.closest('label')?.setAttribute('title', 'Hive Auth is not supported in this browser');
+                if (radio.checked) {
+                    radio.checked = false;
+                    const keychain = document.querySelector('input[name="txtype"][value="Hive Keychain"]');
+                    if (keychain) keychain.checked = true;
                 }
-                radio.disabled = false;
-            });
-        }
+            }
+        });
     }
 
     /**
@@ -1139,6 +1149,7 @@ const UIManager = (function() {
         initializeCustomSelects();
         setupEventListeners();
         initializeTheme();
+        initializeAuthMethods();
         updateVersions();
         updateFeeInfo(SwapManager.getFeeRange());
 

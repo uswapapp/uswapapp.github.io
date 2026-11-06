@@ -83,7 +83,7 @@ const WalletManager = (function() {
         // Validate username
         const sanitized = Utils.sanitizeUsername(username);
         if (!Utils.isValidUsername(sanitized)) {
-            if (!silent) UIManager.showError("Invalid username format");
+            if (!silent) UIManager.showError("\"" + sanitized + "\" is not a valid Hive username");
             return null;
         }
 

@@ -105,7 +105,8 @@ const CONFIG = {
     HIVE_AUTH_APP_DATA: {
         name: "SWAP HIVE",
         description: "Liquidity Bridge",
-        // TODO: point this at the deployed uswapui icon once the domain is live
+        // Shown in the Hive Auth app. Served from this site (CNAME uswap.app,
+        // file assets/hiveupme.png).
         icon: "https://uswap.app/assets/hiveupme.png"
     },
     // How long to wait for a Hive Auth round-trip before giving up

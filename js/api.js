@@ -83,7 +83,7 @@ const APIManager = (function() {
         const button = document.getElementById("popup-button-hive");
         if (button) {
             button.value = selectedHiveNode;
-            button.innerHTML = selectedHiveNode;
+            button.textContent = selectedHiveNode;
         }
         
         return selectedHiveNode;
@@ -107,7 +107,7 @@ const APIManager = (function() {
         const button = document.getElementById("popup-button-engine");
         if (button) {
             button.value = selectedEngineNode;
-            button.innerHTML = selectedEngineNode;
+            button.textContent = selectedEngineNode;
         }
         
         return selectedEngineNode;
